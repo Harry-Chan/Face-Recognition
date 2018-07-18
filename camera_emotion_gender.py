@@ -73,8 +73,8 @@ while True:
 
         rgb_face_fa = fa.align(rgb_image, rgb_image, d)
         gray_face_fa = fa.align(gray_image, gray_image, d)
-        cv2.imshow('window_frame1', rgb_face_fa)
-        cv2.imshow('window_frame2', gray_face_fa)
+        # cv2.imshow('window_frame1', rgb_face_fa)
+        # cv2.imshow('window_frame2', gray_face_fa)
         try:
             rgb_face_fa = cv2.resize(rgb_face_fa, (gender_target_size))
             gray_face_fa = cv2.resize(gray_face_fa, (emotion_target_size))
