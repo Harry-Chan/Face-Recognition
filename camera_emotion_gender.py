@@ -49,9 +49,12 @@ fa = FaceAligner(predictor, desiredFaceWidth=200)
 
 while True:
 
-    bgr_image = video_capture.read()[1]
-    gray_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
-    rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
+    _ , bgr_image = video_capture.read()
+    if _ == True:
+        gray_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
+        rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
+    else:
+        continue
     
     # faces = detect_faces(face_detection, gray_image)
     # for face_coordinates in faces:
