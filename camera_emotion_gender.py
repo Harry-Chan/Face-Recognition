@@ -41,7 +41,7 @@ gender_window = []
 emotion_window = []
 
 # starting video streaming
-cv2.namedWindow('window_frame', cv.WINDOW_NORMAL)
+cv2.namedWindow('window_frame', cv2.WINDOW_NORMAL)
 video_capture = cv2.VideoCapture(0)
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
