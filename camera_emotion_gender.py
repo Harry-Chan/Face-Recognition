@@ -41,7 +41,7 @@ gender_window = []
 emotion_window = []
 
 # starting video streaming
-cv2.namedWindow('window_frame')
+cv2.namedWindow('window_frame', cv.WINDOW_NORMAL)
 video_capture = cv2.VideoCapture(0)
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -49,11 +49,12 @@ fa = FaceAligner(predictor, desiredFaceWidth=200)
 
 while True:
 
-    _ , bgr_image = video_capture.read()
-    if _ == True:
+    ret , bgr_image = video_capture.read()
+    if ret == True:
         gray_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
         rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
     else:
+        print('===')
         continue
     
     # faces = detect_faces(face_detection, gray_image)
