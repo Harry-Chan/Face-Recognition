@@ -9,15 +9,15 @@ import time
 class face_recognition(object):
     def __init__(self):
         self.cnn_face_detector = dlib.cnn_face_detection_model_v1(
-            './detection_models/mmod_human_face_detector.dat')
+            './models/mmod_human_face_detector.dat')
 
         self.face_detector = dlib.get_frontal_face_detector()
 
         self.pose_predictor_5_point = dlib.shape_predictor(
-            './detection_models/shape_predictor_5_face_landmarks.dat')
+            './models/shape_predictor_5_face_landmarks.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
-            './detection_models/dlib_face_recognition_resnet_model_v1.dat')
+            './models/dlib_face_recognition_resnet_model_v1.dat')
 
     def bounds(self, rect, image_shape):
         # 檢查是否超出圖片邊界
@@ -37,7 +37,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image)
+            face_locations = self.face_detection(face_image, model="cnn")
             raw_landmarks = [pose_predictor(
                 face_image, self._css_to_rect(face_location)) for face_location in face_locations]
         else:
@@ -52,7 +52,7 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces(self, known_face_encodings, face_encoding_to_check, tolerance=0.6):
+    def compare_faces(self, known_face_encodings, face_encoding_to_check, tolerance=0.5):
 
        # Compare a list of face encodings against a candidate encoding to see if they match.
 
@@ -93,8 +93,16 @@ def load_img(fr, known_face_encodings, known_face_names, people_object_list):
 
 def main():
 
-    zoom = 0.25
-    video_capture = cv2.VideoCapture(0)
+    width = 1280
+    height = 720
+    zoom = 0.5
+    gst_str = ("nvcamerasrc ! "
+            "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
+            "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
+            "videoconvert ! appsink").format(width, height)
+
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
@@ -111,7 +119,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="hog")
+        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -140,7 +148,7 @@ def main():
 
             if name == "Unknown":
                 new_image = frame[top:bottom, left:right]
-                if fr.face_encodings(new_image) == None:
+                if len(fr.face_encodings(new_image)) == 0:
                     continue
                 cv2.imshow('un_image', new_image)
                 people_num = "people_" + str(num)
