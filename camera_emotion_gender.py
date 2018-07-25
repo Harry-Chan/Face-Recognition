@@ -57,7 +57,7 @@ while(video_capture.isOpened()):
         rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
     else:
         continue
-    
+
     face_rects, scores, idx = detector.run(gray_image, 0)
     for i, d in enumerate(face_rects):
 
