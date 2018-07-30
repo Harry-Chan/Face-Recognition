@@ -36,13 +36,13 @@ emotion_window = []
 width = 640
 height = 360
 gst_str = ("nvcamerasrc ! "
-            "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1458, format=(string)I420, framerate=(fraction)30/1 ! "
-            "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
-            "videoconvert ! appsink").format(width, height)
+           "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1458, format=(string)I420, framerate=(fraction)30/1 ! "
+           "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
+           "videoconvert ! appsink").format(width, height)
 
 video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
-#video_capture = cv2.VideoCapture()  #on windows
+# video_capture = cv2.VideoCapture(0)  #on windows
 
 # starting video streaming
 detector = dlib.get_frontal_face_detector()
@@ -51,7 +51,7 @@ fa = FaceAligner(predictor, desiredFaceWidth=200)
 
 while(video_capture.isOpened()):
 
-    ret , bgr_image = video_capture.read()
+    ret, bgr_image = video_capture.read()
     if ret == True:
         gray_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2GRAY)
         rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
@@ -70,7 +70,7 @@ while(video_capture.isOpened()):
             gray_face_fa = cv2.resize(gray_face_fa, (emotion_target_size))
         except:
             continue
-        
+
         rgb_face_fa = preprocess_input(rgb_face_fa, False)
         rgb_face_fa = np.expand_dims(rgb_face_fa, 0)
         gender_prediction = gender_classifier.predict(rgb_face_fa)
@@ -85,7 +85,6 @@ while(video_capture.isOpened()):
         emotion_text = emotion_labels[emotion_label_arg]
         print(emotion_text)
 
-
         if gender_text == gender_labels[0]:
             color = (255, 0, 0)
         else:
@@ -97,6 +96,6 @@ while(video_capture.isOpened()):
 
     bgr_image = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2BGR)
     cv2.imshow('Emotion_Recognition', bgr_image)
-    
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
