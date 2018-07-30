@@ -1,2 +1,2 @@
-# Emotion-Recognition
-Emotion-Recognition using Python and OpenCV
+# Face-Recognition
+Face-Recognition using Python
