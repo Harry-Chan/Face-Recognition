@@ -140,6 +140,8 @@ def main():
 
             if name == "Unknown":
                 new_image = frame[top:bottom, left:right]
+                if fr.face_encodings(new_image) == None:
+                    continue
                 cv2.imshow('un_image', new_image)
                 people_num = "people_" + str(num)
                 cv2.imwrite("images/" + people_num + ".jpg", new_image)
