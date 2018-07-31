@@ -38,7 +38,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image, model="hog")
+            face_locations = self.face_detection(face_image, model="cnn")
             raw_landmarks = [pose_predictor(
                 face_image, self._css_to_rect(face_location)) for face_location in face_locations]
         else:
@@ -64,7 +64,7 @@ class face_recognition(object):
         print(similars)
         return list(similars <= tolerance)
 
-    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance=0.7):
+    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance=0.6):
 
         similars_list = []
         num = 0
@@ -112,13 +112,13 @@ def main():
     width = 1280
     height = 720
     zoom = 0.25
-    # gst_str = ("nvcamerasrc ! "
-    #            "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
-    #            "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
-    #            "videoconvert ! appsink").format(width, height)
+    gst_str = ("nvcamerasrc ! "
+                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
+                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
+                "videoconvert ! appsink").format(width, height)
 
-    # video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    #video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
@@ -135,7 +135,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="hog")
+        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
