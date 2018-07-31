@@ -1,6 +1,7 @@
 import dlib
 import numpy as np
 import cv2
+from skimage.measure import compare_ssim
 from os import listdir
 from os.path import join
 import time
@@ -37,7 +38,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image, model="cnn")
+            face_locations = self.face_detection(face_image, model="hog")
             raw_landmarks = [pose_predictor(
                 face_image, self._css_to_rect(face_location)) for face_location in face_locations]
         else:
@@ -62,6 +63,21 @@ class face_recognition(object):
             known_face_encodings - face_encoding_to_check, axis=1)
         print(similars)
         return list(similars <= tolerance)
+
+    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance=0.7):
+
+        similars_list = []
+        num = 0
+        for face in known_face_encodings:
+            similars = compare_ssim(face_encoding_to_check, face)
+            if similars >= tolerance:
+                similars_list.append((num, similars))
+            num += 1
+        print(similars_list)
+        if len(similars_list) == 0:
+            return 0
+        else:
+            return sorted(similars_list, key=lambda x: x[1], reverse=True)[0]
 
 
 class people(object):
@@ -95,14 +111,14 @@ def main():
 
     width = 1280
     height = 720
-    zoom = 0.5
-    gst_str = ("nvcamerasrc ! "
-            "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
-            "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
-            "videoconvert ! appsink").format(width, height)
+    zoom = 0.25
+    # gst_str = ("nvcamerasrc ! "
+    #            "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
+    #            "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
+    #            "videoconvert ! appsink").format(width, height)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    
+    # video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
@@ -119,7 +135,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -127,13 +143,16 @@ def main():
 
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
-            matches = fr.compare_faces(known_face_encodings, face_encoding)
+            matches = fr.compare_faces_ssim(
+                known_face_encodings, face_encoding)
             name = "Unknown"
             print(matches)
-            # If a match was found in known_face_encodings, just use the first one.
-            if True in matches:
-                first_match_index = matches.index(True)
-                name = known_face_names[first_match_index]
+            if matches != 0:
+                name = known_face_names[matches[0]]
+            # # If a match was found in known_face_encodings, just use the first one.
+            # if True in matches:
+            #     first_match_index = matches.index(True)
+            #     name = known_face_names[first_match_index]
             face_names.append(name)
 
         # Display the results
