@@ -38,7 +38,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image, model="hog")
+            face_locations = self.face_detection(face_image, model="cnn")
             raw_landmarks = [pose_predictor(
                 face_image, self._css_to_rect(face_location)) for face_location in face_locations]
         else:
@@ -64,7 +64,7 @@ class face_recognition(object):
         print(similars)
         return list(similars <= tolerance)
 
-    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.7, tolerance2=0.5):
+    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.7, tolerance2=0.6):
 
         similars_list = []
         num = 0
@@ -112,7 +112,7 @@ def main():
 
     width = 1280
     height = 720
-    zoom = 1
+    zoom = 0.5
     gst_str = ("nvcamerasrc ! "
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
@@ -136,7 +136,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="hog")
+        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -144,7 +144,6 @@ def main():
 
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
-            fr.compare_faces(known_face_encodings, face_encoding)
             matches = fr.compare_faces_ssim(
                 known_face_encodings, face_encoding)
             name = "Unknown"
@@ -161,24 +160,25 @@ def main():
         for face_location, name in zip(face_detections, face_names):
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             (top, right, bottom, left) = face_location
-            top *= int(1/zoom)
-            right *= int(1/zoom)
-            bottom *= int(1/zoom)
-            left *= int(1/zoom)
 
             if name == "Unknown":
-                new_image = frame[top:bottom, left:right]
+                new_image = small_frame[top:bottom, left:right]
                 # new_image = small_frame[face_location[0]:face_location[2], face_location[3]:face_location[1]]
                 if len(fr.face_encodings(new_image)) == 0:
                     continue
                 cv2.imshow('un_image', new_image)
-                people_num = "people_" + str(num)
-                cv2.imwrite("images/" + people_num + ".jpg", new_image)
-                in_window_names.append(people_num)
+               # people_num = "people_" + str(num)
+                #cv2.imwrite("images/" + people_num + ".jpg", new_image)
+                #in_window_names.append(people_num)
                 num += 1
             else:
                 in_window_names.append(name)
             # Draw a box around the face
+            top *= int(1/zoom)
+            right *= int(1/zoom)
+            bottom *= int(1/zoom)
+            left *= int(1/zoom)
+            
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
             # Draw a label with a name below the face
