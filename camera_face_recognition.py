@@ -111,6 +111,7 @@ def main():
 
     width = 1280
     height = 720
+<<<<<<< HEAD
     zoom = 0.25
     # gst_str = ("nvcamerasrc ! "
     #            "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
@@ -119,6 +120,16 @@ def main():
 
     # video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
     video_capture = cv2.VideoCapture(0)
+=======
+    zoom = 0.5
+    gst_str = ("nvcamerasrc ! "
+            "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
+            "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
+            "videoconvert ! appsink").format(width, height)
+
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+   # video_capture = cv2.VideoCapture(0)
+>>>>>>> 5ddeed6b9986e5a93c515e2b89d6543b253c2d1f
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
