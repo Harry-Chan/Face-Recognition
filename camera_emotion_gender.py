@@ -40,9 +40,9 @@ gst_str = ("nvcamerasrc ! "
            "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
            "videoconvert ! appsink").format(width, height)
 
-video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+# video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
-# video_capture = cv2.VideoCapture(0)  #on windows
+video_capture = cv2.VideoCapture(0)  # on windows
 
 # starting video streaming
 detector = dlib.get_frontal_face_detector()
@@ -60,10 +60,11 @@ while(video_capture.isOpened()):
 
     face_rects, scores, idx = detector.run(gray_image, 0)
     for i, d in enumerate(face_rects):
-
+        print(type(d))
         rgb_face_fa = fa.align(rgb_image, rgb_image, d)
         gray_face_fa = fa.align(gray_image, gray_image, d)
-        # cv2.imshow('window_frame1', rgb_face_fa)
+
+        cv2.imshow('window_frame1', rgb_face_fa)
         # cv2.imshow('window_frame2', gray_face_fa)
         try:
             rgb_face_fa = cv2.resize(rgb_face_fa, (gender_target_size))

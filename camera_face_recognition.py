@@ -38,7 +38,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image, model="cnn")
+            face_locations = self.face_detection(face_image, model="hog")
             raw_landmarks = [pose_predictor(
                 face_image, self._css_to_rect(face_location)) for face_location in face_locations]
         else:
@@ -53,7 +53,7 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces(self, known_face_encodings, face_encoding_to_check, tolerance=0.5):
+    def compare_faces(self, known_face_encodings, face_encoding_to_check, tolerance=0.6):
 
        # Compare a list of face encodings against a candidate encoding to see if they match.
 
@@ -64,14 +64,15 @@ class face_recognition(object):
         print(similars)
         return list(similars <= tolerance)
 
-    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance=0.6):
+    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.7, tolerance2=0.5):
 
         similars_list = []
         num = 0
         for face in known_face_encodings:
-            similars = compare_ssim(face_encoding_to_check, face)
-            if similars >= tolerance:
-                similars_list.append((num, similars))
+            similars_ssim = compare_ssim(face, face_encoding_to_check)
+            similars_distance = np.linalg.norm(face - face_encoding_to_check)
+            if similars_ssim >= tolerance1 and similars_distance <= tolerance2:
+                similars_list.append((num, similars_ssim, similars_distance))
             num += 1
         print(similars_list)
         if len(similars_list) == 0:
@@ -111,14 +112,14 @@ def main():
 
     width = 1280
     height = 720
-    zoom = 0.25
+    zoom = 1
     gst_str = ("nvcamerasrc ! "
-                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
-                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
-                "videoconvert ! appsink").format(width, height)
+               "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
+               "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
+               "videoconvert ! appsink").format(width, height)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    #video_capture = cv2.VideoCapture(0)
+    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
@@ -135,7 +136,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -143,10 +144,10 @@ def main():
 
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
+            fr.compare_faces(known_face_encodings, face_encoding)
             matches = fr.compare_faces_ssim(
                 known_face_encodings, face_encoding)
             name = "Unknown"
-            print(matches)
             if matches != 0:
                 name = known_face_names[matches[0]]
             # # If a match was found in known_face_encodings, just use the first one.
@@ -167,6 +168,7 @@ def main():
 
             if name == "Unknown":
                 new_image = frame[top:bottom, left:right]
+                # new_image = small_frame[face_location[0]:face_location[2], face_location[3]:face_location[1]]
                 if len(fr.face_encodings(new_image)) == 0:
                     continue
                 cv2.imshow('un_image', new_image)
