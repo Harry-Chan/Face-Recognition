@@ -118,8 +118,8 @@ def main():
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    #video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
