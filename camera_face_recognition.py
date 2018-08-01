@@ -44,6 +44,8 @@ class face_recognition(object):
         else:
             raw_landmarks = [pose_predictor(face_image, self._css_to_rect(
                 face_location)) for face_location in face_locations]
+        for ele in raw_landmarks:
+            print(ele)
 
         return [np.array(self.face_encoder.compute_face_descriptor(face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
 
@@ -118,7 +120,7 @@ def main():
 
     width = 1280
     height = 720
-    zoom = 0.5
+    zoom = 0.25
     gst_str = ("nvcamerasrc ! "
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
