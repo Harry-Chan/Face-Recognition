@@ -38,7 +38,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image, model="hog")
+            face_locations = self.face_detection(face_image, model="cnn")
             raw_landmarks = [pose_predictor(
                 face_image, self._css_to_rect(face_location)) for face_location in face_locations]
         else:
@@ -64,7 +64,7 @@ class face_recognition(object):
         print(similars)
         return list(similars <= tolerance)
 
-    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.7, tolerance2=0.5):
+    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.65, tolerance2=0.4):
 
         similars_list = []
         num = 0
@@ -73,6 +73,8 @@ class face_recognition(object):
             similars_nrmse = compare_nrmse(face, face_encoding_to_check)
             if similars_ssim >= tolerance1 and similars_nrmse <= tolerance2:
                 similars_list.append((num, similars_ssim, similars_nrmse))
+            else:
+                print("="*5,(num, similars_ssim, similars_nrmse))
             num += 1
         print(similars_list)
         if len(similars_list) == 0:
@@ -85,6 +87,7 @@ class people(object):
     def __init__(self, name):
         self.name = name
         self.time = 0
+        self.enter = False
 
 
 def load_img(fr, known_face_encodings, known_face_names, people_object_list):
@@ -95,10 +98,13 @@ def load_img(fr, known_face_encodings, known_face_names, people_object_list):
         img = cv2.imread(img_path)
         name = f.split(".")[0]
         if name not in known_face_names:
-            known_face_names.append(name)
-
-            face_encodings = fr.face_encodings(img)[0]
-            known_face_encodings.append(face_encodings)
+            face_encoding = fr.face_encodings(img)
+            if len(face_encoding) == 0:
+                print("encoding error")
+                continue
+            else:
+                known_face_names.append(name)
+                known_face_encodings.append(face_encoding[0])
 
             people_num = people("people_" + str(known_num))
             people_object_list.append(people_num)
@@ -112,14 +118,14 @@ def main():
 
     width = 1280
     height = 720
-    zoom = 0.25
+    zoom = 0.5
     gst_str = ("nvcamerasrc ! "
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    #video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
@@ -136,7 +142,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="hog")
+        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -165,6 +171,7 @@ def main():
                 new_image = small_frame[top:bottom, left:right]
 
                 if len(fr.face_encodings(new_image)) == 0:
+                    print("encodings error")
                     continue
                 cv2.imshow('un_image', new_image)
                 people_num = "people_" + str(num)
@@ -201,8 +208,17 @@ def main():
         for ele in people_object_list:
             if ele.name in in_window_names:
                 ele.time += run_time
+                ele.enter = True
                 print(ele.name, ele.time)
         print(run_time)
+    
+    enter_num = 0
+    for ele in people_object_list:
+        if ele.enter == True:
+            print(ele.name + ":",ele.time)
+            enter_num += 1
+    print("total people:", enter_num)
+    
     # Release handle to the webcam
     video_capture.release()
     cv2.destroyAllWindows()
