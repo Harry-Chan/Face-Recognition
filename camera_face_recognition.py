@@ -1,7 +1,7 @@
 import dlib
 import numpy as np
 import cv2
-from skimage.measure import compare_ssim
+from skimage.measure import compare_ssim, compare_nrmse, compare_psnr
 from os import listdir
 from os.path import join
 import time
@@ -38,7 +38,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image, model="cnn")
+            face_locations = self.face_detection(face_image, model="hog")
             raw_landmarks = [pose_predictor(
                 face_image, self._css_to_rect(face_location)) for face_location in face_locations]
         else:
@@ -64,15 +64,15 @@ class face_recognition(object):
         print(similars)
         return list(similars <= tolerance)
 
-    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.7, tolerance2=0.6):
+    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.7, tolerance2=0.5):
 
         similars_list = []
         num = 0
         for face in known_face_encodings:
             similars_ssim = compare_ssim(face, face_encoding_to_check)
-            similars_distance = np.linalg.norm(face - face_encoding_to_check)
-            if similars_ssim >= tolerance1 and similars_distance <= tolerance2:
-                similars_list.append((num, similars_ssim, similars_distance))
+            similars_nrmse = compare_nrmse(face, face_encoding_to_check)
+            if similars_ssim >= tolerance1 and similars_nrmse <= tolerance2:
+                similars_list.append((num, similars_ssim, similars_nrmse))
             num += 1
         print(similars_list)
         if len(similars_list) == 0:
@@ -112,14 +112,14 @@ def main():
 
     width = 1280
     height = 720
-    zoom = 0.5
+    zoom = 0.25
     gst_str = ("nvcamerasrc ! "
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    #video_capture = cv2.VideoCapture(0)
+    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
@@ -136,7 +136,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -163,13 +163,13 @@ def main():
 
             if name == "Unknown":
                 new_image = small_frame[top:bottom, left:right]
-                # new_image = small_frame[face_location[0]:face_location[2], face_location[3]:face_location[1]]
+
                 if len(fr.face_encodings(new_image)) == 0:
                     continue
                 cv2.imshow('un_image', new_image)
-               # people_num = "people_" + str(num)
-                #cv2.imwrite("images/" + people_num + ".jpg", new_image)
-                #in_window_names.append(people_num)
+                people_num = "people_" + str(num)
+                cv2.imwrite("images/" + people_num + ".jpg", new_image)
+                in_window_names.append(people_num)
                 num += 1
             else:
                 in_window_names.append(name)
@@ -178,7 +178,7 @@ def main():
             right *= int(1/zoom)
             bottom *= int(1/zoom)
             left *= int(1/zoom)
-            
+
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
             # Draw a label with a name below the face
