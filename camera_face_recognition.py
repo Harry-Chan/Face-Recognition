@@ -23,14 +23,17 @@ class face_recognition(object):
 
     def bounds(self, rect, image_shape):
         # 檢查是否超出圖片邊界
-        return max(rect.top(), 0), min(rect.right(), image_shape[1]), min(rect.bottom(), image_shape[0]), max(rect.left(), 0)
+        if rect.top() < 0 or rect.right() > image_shape[1] or rect.bottom() > image_shape[0]or rect.left() < 0:
+            return False
+        else:
+            return True
 
     def face_detection(self, img, number_of_times_to_upsample=1, model="hog"):
         # 使用dlib的face_detecctor偵測人臉位置
         if model != "cnn":
-            return [self.bounds(face, img.shape) for face in self.face_detector(img, number_of_times_to_upsample)]
+            return [face.top(), face.right(), face.bottom(), face.left() for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
-            return [self.bounds(face.rect, img.shape) for face in self.cnn_face_detector(img, number_of_times_to_upsample)]
+            return [face.top(), face.right(), face.bottom(), face.left() for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
 
     def face_encodings(self, face_image, face_locations=None, num_jitters=0):
 
@@ -90,7 +93,7 @@ class face_recognition(object):
             print("center_distance", center_distance)
             if similars_ssim >= tolerance1 and similars_nrmse <= tolerance2:
                 similars_list.append((num, similars_ssim, similars_nrmse))
-            elif center_distance <= 50 and (similars_ssim >= tolerance1 - 0.2 or similars_nrmse <= tolerance2 + 0.2) :
+            elif center_distance <= 50 and (similars_ssim >= tolerance1 - 0.2 or similars_nrmse <= tolerance2 + 0.2):
                 similars_list.append((num, similars_ssim, similars_nrmse))
                 print("============")
             else:
@@ -153,8 +156,8 @@ def main():
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    #video_capture = cv2.VideoCapture(0)
+    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     people_object_list, known_face_names, known_num = load_img(fr, [], [])
@@ -170,7 +173,7 @@ def main():
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
