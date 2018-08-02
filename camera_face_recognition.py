@@ -23,7 +23,7 @@ class face_recognition(object):
 
     def bounds(self, rect, image_shape):
         # 檢查是否超出圖片邊界
-        if rect.top() < 0 or rect.right() > image_shape[1] or rect.bottom() > image_shape[0]or rect.left() < 0:
+        if rect.top() < 0 or rect.right() > image_shape[1] or rect.bottom() > image_shape[0] or rect.left() < 0:
             return False
         else:
             return True
@@ -31,18 +31,17 @@ class face_recognition(object):
     def face_detection(self, img, number_of_times_to_upsample=1, model="hog"):
         # 使用dlib的face_detecctor偵測人臉位置
         if model != "cnn":
-            return [face.top(), face.right(), face.bottom(), face.left() for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
+            return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
-            return [face.top(), face.right(), face.bottom(), face.left() for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
+            return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
 
     def face_encodings(self, face_image, face_locations=None, num_jitters=0):
-
+        # 將人臉編碼成128維的向量
         # Given an image, return the 128-dimension face encoding for each face in the image.
 
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            # face_locations = self.face_detection(face_image, model="cnn")
             bottom, right, _ = face_image.shape
             face_location = (0, right, bottom, 0)
             raw_landmarks = [pose_predictor(
@@ -58,7 +57,7 @@ class face_recognition(object):
             face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
 
     def _css_to_rect(self, css):
-
+        # 將像素位置轉換成dlib使用的格式
         # Convert a tuple in (top, right, bottom, left) order to a dlib `rect` object
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
@@ -75,19 +74,20 @@ class face_recognition(object):
     #     return list(similars <= tolerance)
 
     def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.4):
-
+        # 比較人臉相似度
         similars_list = []
         num = 0
         (top, right, bottom, left) = face_location_to_check
         x, y = ((left+right) / 2, (bottom+top) / 2)
 
         for people in people_object_list:
+            # 使用ssim(結構相似性)
             similars_ssim = compare_ssim(
                 people.face_encoding, face_encoding_to_check)
-
+            # 使用nrmse(正規化方均根差)
             similars_nrmse = compare_nrmse(
                 people.face_encoding, face_encoding_to_check)
-
+            # 計算兩張圖的中心距離
             center_distance = (
                 (x - people.center[0]) ** 2 + (y - people.center[1]) ** 2) ** 0.5
             print("center_distance", center_distance)
@@ -155,8 +155,8 @@ def main():
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    #video_capture = cv2.VideoCapture(0)
+    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     people_object_list, known_face_names, known_num = load_img(fr, [], [])
@@ -172,7 +172,7 @@ def main():
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
