@@ -38,14 +38,17 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            face_locations = self.face_detection(face_image, model="cnn")
+            # face_locations = self.face_detection(face_image, model="cnn")
+            bottom, right, _ = face_image.shape
+            face_location = (0, right, bottom, 0)
             raw_landmarks = [pose_predictor(
-                face_image, self._css_to_rect(face_location)) for face_location in face_locations]
+                face_image, self._css_to_rect(face_location))]
+
+            # print("---"*5, raw_landmarks[0].part(0),
+            #       raw_landmarks[0].part(1), raw_landmarks[0].part(2), raw_landmarks[0].part(3), raw_landmarks[0].part(4))
         else:
             raw_landmarks = [pose_predictor(face_image, self._css_to_rect(
                 face_location)) for face_location in face_locations]
-        for ele in raw_landmarks:
-            print(ele)
 
         return [np.array(self.face_encoder.compute_face_descriptor(face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
 
@@ -76,7 +79,7 @@ class face_recognition(object):
             if similars_ssim >= tolerance1 and similars_nrmse <= tolerance2:
                 similars_list.append((num, similars_ssim, similars_nrmse))
             else:
-                print("="*5,(num, similars_ssim, similars_nrmse))
+                print("="*5, (num, similars_ssim, similars_nrmse))
             num += 1
         print(similars_list)
         if len(similars_list) == 0:
@@ -126,8 +129,8 @@ def main():
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    #video_capture = cv2.VideoCapture(0)
+    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
@@ -144,7 +147,7 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -157,10 +160,6 @@ def main():
             name = "Unknown"
             if matches != 0:
                 name = known_face_names[matches[0]]
-            # # If a match was found in known_face_encodings, just use the first one.
-            # if True in matches:
-            #     first_match_index = matches.index(True)
-            #     name = known_face_names[first_match_index]
             face_names.append(name)
 
         # Display the results
@@ -213,14 +212,14 @@ def main():
                 ele.enter = True
                 print(ele.name, ele.time)
         print(run_time)
-    
+
     enter_num = 0
     for ele in people_object_list:
         if ele.enter == True:
-            print(ele.name + ":",ele.time)
+            print(ele.name + ":", ele.time)
             enter_num += 1
     print("total people:", enter_num)
-    
+
     # Release handle to the webcam
     video_capture.release()
     cv2.destroyAllWindows()
