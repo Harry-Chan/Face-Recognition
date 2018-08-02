@@ -71,7 +71,7 @@ class face_recognition(object):
     #     print(similars)
     #     return list(similars <= tolerance)
 
-    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.65, tolerance2=0.4):
+    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.4):
 
         similars_list = []
         num = 0
@@ -90,10 +90,12 @@ class face_recognition(object):
             print("center_distance", center_distance)
             if similars_ssim >= tolerance1 and similars_nrmse <= tolerance2:
                 similars_list.append((num, similars_ssim, similars_nrmse))
-            elif center_distance <= 50 and similars_ssim >= tolerance1 - 0.1:
+            elif center_distance <= 50 and (similars_ssim >= tolerance1 - 0.2 or similars_nrmse <= tolerance2 + 0.2) :
                 similars_list.append((num, similars_ssim, similars_nrmse))
+                print("============")
             else:
                 print("="*5, (num, similars_ssim, similars_nrmse))
+                time.sleep(5)
             num += 1
         print(similars_list)
         if len(similars_list) == 0:
@@ -145,14 +147,14 @@ def main():
 
     width = 1280
     height = 720
-    zoom = 1
+    zoom = 0.5
     gst_str = ("nvcamerasrc ! "
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    #video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     people_object_list, known_face_names, known_num = load_img(fr, [], [])
@@ -168,7 +170,7 @@ def main():
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        face_detections = fr.face_detection(rgb_small_frame, model="hog")
+        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
