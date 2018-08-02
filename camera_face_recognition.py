@@ -4,6 +4,7 @@ import cv2
 from skimage.measure import compare_ssim, compare_nrmse, compare_psnr
 from os import listdir
 from os.path import join
+import math
 import time
 
 
@@ -31,7 +32,7 @@ class face_recognition(object):
         else:
             return [self.bounds(face.rect, img.shape) for face in self.cnn_face_detector(img, number_of_times_to_upsample)]
 
-    def face_encodings(self, face_image, face_locations=None, num_jitters=1):
+    def face_encodings(self, face_image, face_locations=None, num_jitters=0):
 
         # Given an image, return the 128-dimension face encoding for each face in the image.
 
@@ -50,7 +51,8 @@ class face_recognition(object):
             raw_landmarks = [pose_predictor(face_image, self._css_to_rect(
                 face_location)) for face_location in face_locations]
 
-        return [np.array(self.face_encoder.compute_face_descriptor(face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+        return [np.array(self.face_encoder.compute_face_descriptor(
+            face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
 
     def _css_to_rect(self, css):
 
@@ -58,25 +60,37 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces(self, known_face_encodings, face_encoding_to_check, tolerance=0.6):
+    # def compare_faces(self, known_face_encodings, face_encoding_to_check, tolerance=0.6):
 
-       # Compare a list of face encodings against a candidate encoding to see if they match.
+    #    # Compare a list of face encodings against a candidate encoding to see if they match.
 
-        if len(known_face_encodings) == 0:
-            return np.empty((0))
-        similars = np.linalg.norm(
-            known_face_encodings - face_encoding_to_check, axis=1)
-        print(similars)
-        return list(similars <= tolerance)
+    #     if len(known_face_encodings) == 0:
+    #         return np.empty((0))
+    #     similars = np.linalg.norm(
+    #         known_face_encodings - face_encoding_to_check, axis=1)
+    #     print(similars)
+    #     return list(similars <= tolerance)
 
-    def compare_faces_ssim(self, known_face_encodings, face_encoding_to_check, tolerance1=0.65, tolerance2=0.4):
+    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.65, tolerance2=0.4):
 
         similars_list = []
         num = 0
-        for face in known_face_encodings:
-            similars_ssim = compare_ssim(face, face_encoding_to_check)
-            similars_nrmse = compare_nrmse(face, face_encoding_to_check)
+        (top, right, bottom, left) = face_location_to_check
+        x, y = ((left+right) / 2, (bottom+top) / 2)
+
+        for people in people_object_list:
+            similars_ssim = compare_ssim(
+                people.face_encoding, face_encoding_to_check)
+
+            similars_nrmse = compare_nrmse(
+                people.face_encoding, face_encoding_to_check)
+
+            center_distance = (
+                (x - people.center[0]) ** 2 + (y - people.center[1]) ** 2) ** 0.5
+            print("center_distance", center_distance)
             if similars_ssim >= tolerance1 and similars_nrmse <= tolerance2:
+                similars_list.append((num, similars_ssim, similars_nrmse))
+            elif center_distance <= 50 and similars_ssim >= tolerance1 - 0.1:
                 similars_list.append((num, similars_ssim, similars_nrmse))
             else:
                 print("="*5, (num, similars_ssim, similars_nrmse))
@@ -89,41 +103,49 @@ class face_recognition(object):
 
 
 class people(object):
-    def __init__(self, name):
+    def __init__(self, name, face_encoding):
         self.name = name
+        self.face_encoding = face_encoding
         self.time = 0
+        self.center = (0, 0)
         self.enter = False
 
+    def cal_center(self, face_location):
+        (top, right, bottom, left) = face_location
+        self.center = ((left+right) / 2, (bottom+top) / 2)
 
-def load_img(fr, known_face_encodings, known_face_names, people_object_list):
+
+def load_img(fr, known_face_names, people_object_list):
     files = listdir("images")
     known_num = len(known_face_names)
-    for f in files:
-        img_path = join("images", f)
-        img = cv2.imread(img_path)
-        name = f.split(".")[0]
-        if name not in known_face_names:
-            face_encoding = fr.face_encodings(img)
-            if len(face_encoding) == 0:
-                print("encoding error")
-                continue
-            else:
-                known_face_names.append(name)
-                known_face_encodings.append(face_encoding[0])
+    if len(files) == known_num:
+        return people_object_list, known_face_names, known_num
+    else:
+        for f in files:
+            img_path = join("images", f)
+            name = f.split(".")[0]
+            if name not in known_face_names:
+                img = cv2.imread(img_path)
+                face_encoding = fr.face_encodings(img)
+                if len(face_encoding) == 0:
+                    print("encoding error")
+                    continue
+                else:
+                    new_name = "people_" + str(known_num)
+                    new_people = people(new_name, face_encoding[0])
+                    people_object_list.append(new_people)
 
-            people_num = people("people_" + str(known_num))
-            people_object_list.append(people_num)
+                    known_face_names.append(new_name)
+                    known_num += 1
 
-            known_num += 1
-
-    return known_face_encodings, known_face_names, people_object_list
+        return people_object_list, known_face_names, known_num
 
 
 def main():
 
     width = 1280
     height = 720
-    zoom = 0.25
+    zoom = 1
     gst_str = ("nvcamerasrc ! "
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
@@ -133,9 +155,7 @@ def main():
     video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
-    known_face_encodings, known_face_names, people_object_list = load_img(fr, [], [
-    ], [])
-    num = len(known_face_names)
+    people_object_list, known_face_names, known_num = load_img(fr, [], [])
 
     while True:
         start = time.time()
@@ -147,16 +167,17 @@ def main():
 
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+
         face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
         face_names = []
 
-        for face_encoding in face_encodings:
+        for face_location, face_encoding in zip(face_detections, face_encodings):
             # See if the face is a match for the known face(s)
             matches = fr.compare_faces_ssim(
-                known_face_encodings, face_encoding)
+                face_encoding, face_location, people_object_list)
             name = "Unknown"
             if matches != 0:
                 name = known_face_names[matches[0]]
@@ -166,21 +187,33 @@ def main():
 
         for face_location, name in zip(face_detections, face_names):
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            (top, right, bottom, left) = face_location
+            top, right, bottom, left = face_location
 
             if name == "Unknown":
                 new_image = small_frame[top:bottom, left:right]
-
-                if len(fr.face_encodings(new_image)) == 0:
+                face_encoding = fr.face_encodings(new_image)
+                if len(face_encoding) == 0:
                     print("encodings error")
                     continue
-                cv2.imshow('un_image', new_image)
-                people_num = "people_" + str(num)
-                cv2.imwrite("images/" + people_num + ".jpg", new_image)
-                in_window_names.append(people_num)
-                num += 1
+                else:
+                    new_name = "people_" + str(known_num)
+                    cv2.imshow('un_image', new_image)
+                    cv2.imwrite(
+                        "images/{0}.jpg".format(new_name), new_image)
+
+                    new_people = people(new_name, face_encoding[0])
+                    new_people.cal_center(face_location)
+                    people_object_list.append(new_people)
+
+                    known_face_names.append(new_name)
+                    known_num += 1
+                    in_window_names.append(new_name)
+
             else:
+                people_num = people_object_list[known_face_names.index(name)]
+                people_num.cal_center(face_location)
                 in_window_names.append(name)
+
             # Draw a box around the face
             top *= int(1/zoom)
             right *= int(1/zoom)
@@ -202,10 +235,7 @@ def main():
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-        known_face_encodings, known_face_names, people_object_list = load_img(
-            fr, known_face_encodings, known_face_names, people_object_list)
-
-        run_time = time.time()-start
+        run_time = time.time() - start
         for ele in people_object_list:
             if ele.name in in_window_names:
                 ele.time += run_time
