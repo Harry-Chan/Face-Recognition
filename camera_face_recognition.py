@@ -2,6 +2,8 @@ import dlib
 import numpy as np
 import cv2
 from skimage.measure import compare_ssim, compare_nrmse, compare_psnr
+from keras.models import load_model
+import numpy as np
 from os import listdir
 from os.path import join
 import math
@@ -20,6 +22,17 @@ class face_recognition(object):
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
+
+        self.gender_classifier = load_model(
+            'gender_models/simple_CNN.81-0.96.hdf5', compile=False)
+
+        self.gender_labels = {0: 'woman', 1: 'man'}
+
+        self.emotion_classifier = load_model(
+            'emotion_models/simple_CNN.985-0.66.hdf5', compile=False)
+
+        self.emotion_labels = {0: 'angry', 1: 'disgust', 2: 'fear', 3: 'happy',
+                               4: 'sad', 5: 'surprise', 6: 'neutral'}
 
     def bounds(self, rect, image_shape):
         # 檢查是否超出圖片邊界
@@ -105,6 +118,32 @@ class face_recognition(object):
         else:
             return sorted(similars_list, key=lambda x: x[1], reverse=True)[0]
 
+    def gender_prediction(self, image):
+        # rgb_face_fa = preprocess_input(rgb_face_fa, False)
+        gender_input_size = self.gender_classifier.input_shape[1:3]
+        image = cv2.resize(image, (gender_input_size))
+        image = image / 255
+        image = np.expand_dims(image, 0)
+        gender_prediction = self.gender_classifier.predict(image)
+        gender_label_arg = np.argmax(gender_prediction)
+        gender_text = self.gender_labels[gender_label_arg]
+        print('gender', gender_text)
+        return gender_text
+
+    def emotion_prediction(self, image):
+        gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        emotion_input_size = self.emotion_classifier.input_shape[1:3]
+        gray_image = cv2.resize(gray_image, (emotion_input_size))
+        gray_image = gray_image/255
+        gray_image = np.expand_dims(gray_image, 0)
+        gray_image = np.expand_dims(gray_image, -1)
+
+        emotion_prediction = self.emotion_classifier.predict(gray_image)
+        emotion_label_arg = np.argmax(emotion_prediction)
+        emotion_text = self.emotion_labels[emotion_label_arg]
+        print('emotion', emotion_text)
+        return emotion_text
+
 
 class people(object):
     def __init__(self, name, face_encoding):
@@ -155,7 +194,7 @@ def main():
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    # video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
     video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
@@ -192,18 +231,17 @@ def main():
         for face_location, name in zip(face_detections, face_names):
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             top, right, bottom, left = face_location
-
+            image = small_frame[top:bottom, left:right]
             if name == "Unknown":
-                new_image = small_frame[top:bottom, left:right]
-                face_encoding = fr.face_encodings(new_image)
+                face_encoding = fr.face_encodings(image)
                 if len(face_encoding) == 0:
                     print("encodings error")
                     continue
                 else:
                     new_name = "people_" + str(known_num)
-                    cv2.imshow('un_image', new_image)
+                    cv2.imshow('un_image', image)
                     cv2.imwrite(
-                        "images/{0}.jpg".format(new_name), new_image)
+                        "images/{0}.jpg".format(new_name), image)
 
                     new_people = people(new_name, face_encoding[0])
                     new_people.cal_center(face_location)
@@ -218,21 +256,35 @@ def main():
                 people_num.cal_center(face_location)
                 in_window_names.append(name)
 
+            gender_text = fr.gender_prediction(image)
+            emotion_text = fr.emotion_prediction(image)
             # Draw a box around the face
             top *= int(1/zoom)
             right *= int(1/zoom)
             bottom *= int(1/zoom)
             left *= int(1/zoom)
 
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-
             # Draw a label with a name below the face
-            cv2.rectangle(frame, (left, bottom - 35),
-                          (right, bottom), (0, 0, 255), cv2.FILLED)
+            if gender_text == 'man':
+                cv2.rectangle(frame, (left, top),
+                              (right, bottom), (255, 0, 0), 2)
+                cv2.rectangle(frame, (left, bottom - 35),
+                              (right, bottom), (255, 0, 0), cv2.FILLED)
+            else:
+                cv2.rectangle(frame, (left, top),
+                              (right, bottom), (0, 0, 255), 2)
+                cv2.rectangle(frame, (left, bottom - 35),
+                              (right, bottom), (0, 0, 255), cv2.FILLED)
+
             font = cv2.FONT_HERSHEY_DUPLEX
             cv2.putText(frame, name, (left + 6, bottom - 6),
                         font, 1.0, (255, 255, 255), 1)
 
+            cv2.putText(frame, gender_text, (left, top - 6),
+                        font, 1.0, (255, 255, 255), 1)
+
+            cv2.putText(frame, emotion_text, (left, top + 20),
+                        font, 1.0, (255, 255, 255), 1)
         # Display the resulting image
         cv2.imshow('face_recognition', frame)
         # Hit 'q' on the keyboard to quit!
