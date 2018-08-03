@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 from skimage.measure import compare_ssim, compare_nrmse, compare_psnr
 from keras.models import load_model
+from keras import backend
 import numpy as np
 from os import listdir
 from os.path import join
@@ -15,7 +16,7 @@ class face_recognition(object):
         self.cnn_face_detector = dlib.cnn_face_detection_model_v1(
             './models/mmod_human_face_detector.dat')
 
-        self.face_detector = dlib.get_frontal_face_detector()
+        #self.face_detector = dlib.get_frontal_face_detector()
 
         self.pose_predictor_5_point = dlib.shape_predictor(
             './models/shape_predictor_5_face_landmarks.dat')
@@ -46,7 +47,7 @@ class face_recognition(object):
         if model != "cnn":
             return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
-            return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
+            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True]
 
     def face_encodings(self, face_image, face_locations=None, num_jitters=0):
         # 將人臉編碼成128維的向量
@@ -194,8 +195,8 @@ def main():
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    # video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    #video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     people_object_list, known_face_names, known_num = load_img(fr, [], [])
@@ -211,7 +212,7 @@ def main():
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        face_detections = fr.face_detection(rgb_small_frame, model="hog")
+        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -307,6 +308,7 @@ def main():
     print("total people:", enter_num)
 
     # Release handle to the webcam
+    backend.clear_session()
     video_capture.release()
     cv2.destroyAllWindows()
 
