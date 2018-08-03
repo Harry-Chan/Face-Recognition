@@ -46,7 +46,8 @@ video_capture = cv2.VideoCapture(0)  # on windows
 
 # starting video streaming
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor(
+    "./models/shape_predictor_68_face_landmarks.dat")
 fa = FaceAligner(predictor, desiredFaceWidth=200)
 
 while(video_capture.isOpened()):
@@ -63,9 +64,9 @@ while(video_capture.isOpened()):
         print(type(d))
         rgb_face_fa = fa.align(rgb_image, rgb_image, d)
         gray_face_fa = fa.align(gray_image, gray_image, d)
-
+        print(rgb_face_fa.shape)
         cv2.imshow('window_frame1', rgb_face_fa)
-        # cv2.imshow('window_frame2', gray_face_fa)
+        cv2.imshow('window_frame2', gray_face_fa)
         try:
             rgb_face_fa = cv2.resize(rgb_face_fa, (gender_target_size))
             gray_face_fa = cv2.resize(gray_face_fa, (emotion_target_size))
