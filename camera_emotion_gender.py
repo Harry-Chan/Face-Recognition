@@ -47,7 +47,7 @@ video_capture = cv2.VideoCapture(0)  # on windows
 # starting video streaming
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor(
-    "./models/shape_predictor_68_face_landmarks.dat")
+    "./models/shape_predictor_5_face_landmarks.dat")
 fa = FaceAligner(predictor, desiredFaceWidth=200)
 
 while(video_capture.isOpened()):

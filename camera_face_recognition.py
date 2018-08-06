@@ -5,6 +5,7 @@ from skimage.measure import compare_ssim, compare_nrmse, compare_psnr
 from keras.models import load_model
 from keras import backend
 import numpy as np
+from imutils.face_utils import FaceAligner
 from os import listdir
 from os.path import join
 import math
@@ -16,7 +17,7 @@ class face_recognition(object):
         self.cnn_face_detector = dlib.cnn_face_detection_model_v1(
             './models/mmod_human_face_detector.dat')
 
-        #self.face_detector = dlib.get_frontal_face_detector()
+        self.face_detector = dlib.get_frontal_face_detector()
 
         self.pose_predictor_5_point = dlib.shape_predictor(
             './models/shape_predictor_5_face_landmarks.dat')
@@ -26,6 +27,9 @@ class face_recognition(object):
 
         self.gender_classifier = load_model(
             'gender_models/simple_CNN.81-0.96.hdf5', compile=False)
+
+        self.face_aligner = FaceAligner(
+            self.pose_predictor_5_point, desiredFaceWidth=500)
 
         self.gender_labels = {0: 'woman', 1: 'man'}
 
@@ -195,8 +199,8 @@ def main():
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    #video_capture = cv2.VideoCapture(0)
+    # video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(0)
     fr = face_recognition()
 
     people_object_list, known_face_names, known_num = load_img(fr, [], [])
@@ -212,7 +216,7 @@ def main():
         # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
         face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
 
@@ -233,16 +237,19 @@ def main():
             # Scale back up face locations since the frame we detected in was scaled to 1/4 size
             top, right, bottom, left = face_location
             image = small_frame[top:bottom, left:right]
+            image_aligner = fr.face_aligner.align(
+                small_frame, small_frame, fr._css_to_rect(face_location))
+
             if name == "Unknown":
-                face_encoding = fr.face_encodings(image)
+                face_encoding = fr.face_encodings(image_aligner)
                 if len(face_encoding) == 0:
                     print("encodings error")
                     continue
                 else:
                     new_name = "people_" + str(known_num)
-                    cv2.imshow('un_image', image)
+                    cv2.imshow('un_image', image_aligner)
                     cv2.imwrite(
-                        "images/{0}.jpg".format(new_name), image)
+                        "images/{0}.jpg".format(new_name), image_aligner)
 
                     new_people = people(new_name, face_encoding[0])
                     new_people.cal_center(face_location)
@@ -257,8 +264,9 @@ def main():
                 people_num.cal_center(face_location)
                 in_window_names.append(name)
 
-            gender_text = fr.gender_prediction(image)
-            emotion_text = fr.emotion_prediction(image)
+            gender_text = fr.gender_prediction(image_aligner)
+            emotion_text = fr.emotion_prediction(image_aligner)
+
             # Draw a box around the face
             top *= int(1/zoom)
             right *= int(1/zoom)
