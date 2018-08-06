@@ -62,34 +62,36 @@ class face_recognition(object):
         if face_locations is None:
             bottom, right, _ = face_image.shape
             face_location = (0, right, bottom, 0)
-            raw_landmarks = [pose_predictor(
-                face_image, self._css_to_rect(face_location))]
+            raw_landmark = pose_predictor(
+                face_image, self._css_to_rect(face_location))
 
+            return np.array(self.face_encoder.compute_face_descriptor(face_image, raw_landmark, num_jitters))
             # print("---"*5, raw_landmarks[0].part(0),
             #       raw_landmarks[0].part(1), raw_landmarks[0].part(2), raw_landmarks[0].part(3), raw_landmarks[0].part(4))
         else:
-            raw_landmarks = [pose_predictor(face_image, self._css_to_rect(
-                face_location)) for face_location in face_locations]
+            raw_landmarks = []
+            image_aligners = []
+            for face_location in face_locations:
 
-        return [np.array(self.face_encoder.compute_face_descriptor(
-            face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+                image_aligner = self.face_aligner.align(
+                    face_image, face_image, self._css_to_rect(face_location))
+                image_aligners.append(image_aligner)
+
+                bottom, right, _ = image_aligner.shape
+                new_face_location = (0, right, bottom, 0)
+                raw_landmarks.append(pose_predictor(
+                    image_aligner, self._css_to_rect(new_face_location)))
+
+            face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
+                face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+
+            return face_encodings, image_aligners
 
     def _css_to_rect(self, css):
         # 將像素位置轉換成dlib使用的格式
         # Convert a tuple in (top, right, bottom, left) order to a dlib `rect` object
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
-
-    # def compare_faces(self, known_face_encodings, face_encoding_to_check, tolerance=0.6):
-
-    #    # Compare a list of face encodings against a candidate encoding to see if they match.
-
-    #     if len(known_face_encodings) == 0:
-    #         return np.empty((0))
-    #     similars = np.linalg.norm(
-    #         known_face_encodings - face_encoding_to_check, axis=1)
-    #     print(similars)
-    #     return list(similars <= tolerance)
 
     def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.4):
         # 比較人臉相似度
@@ -180,7 +182,7 @@ def load_img(fr, known_face_names, people_object_list):
                     continue
                 else:
                     new_name = "people_" + str(known_num)
-                    new_people = people(new_name, face_encoding[0])
+                    new_people = people(new_name, face_encoding)
                     people_object_list.append(new_people)
 
                     known_face_names.append(new_name)
@@ -194,80 +196,73 @@ def main():
     width = 1280
     height = 720
     zoom = 0.5
+
+    # 在TX2上使用視訊鏡頭
     gst_str = ("nvcamerasrc ! "
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
+    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-    #video_capture = cv2.VideoCapture(0)
+    # 在windows使用視訊頭
+    video_capture = cv2.VideoCapture(0)
+
+    # 初始化套件
     fr = face_recognition()
 
+    # 讀取已知人臉圖片
     people_object_list, known_face_names, known_num = load_img(fr, [], [])
 
     while True:
         start = time.time()
         in_window_names = []
-        # Grab a single frame of video
+        # 讀取視訊畫面
         ret, frame = video_capture.read()
-        # Resize frame of video to 1/4 size for faster face recognition processing
+        # Resize 大小加速運算速度
         small_frame = cv2.resize(frame, (0, 0), fx=zoom, fy=zoom)
 
-        # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+        # 將BRG(openCV使用))轉成RGB模式
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        # 偵測畫面中的人臉位置(可使用cnn與hog模式)
+        face_detections = fr.face_detection(rgb_small_frame, model="hog")
 
-        face_encodings = fr.face_encodings(rgb_small_frame, face_detections)
+        # 取出人臉的特徵值並傳換成128維的向量
+        face_encodings, image_aligners = fr.face_encodings(
+            rgb_small_frame, face_detections)
 
-        face_names = []
+        # 與原先已知的人臉比對，查看是否已存在
+        for face_location, face_encoding, image_aligner in zip(face_detections, face_encodings, image_aligners):
 
-        for face_location, face_encoding in zip(face_detections, face_encodings):
-            # See if the face is a match for the known face(s)
             matches = fr.compare_faces_ssim(
                 face_encoding, face_location, people_object_list)
-            name = "Unknown"
+
             if matches != 0:
                 name = known_face_names[matches[0]]
-            face_names.append(name)
-
-        # Display the results
-
-        for face_location, name in zip(face_detections, face_names):
-            # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            top, right, bottom, left = face_location
-            image = small_frame[top:bottom, left:right]
-            image_aligner = fr.face_aligner.align(
-                small_frame, small_frame, fr._css_to_rect(face_location))
-
-            if name == "Unknown":
-                face_encoding = fr.face_encodings(image_aligner)
-                if len(face_encoding) == 0:
-                    print("encodings error")
-                    continue
-                else:
-                    new_name = "people_" + str(known_num)
-                    cv2.imshow('un_image', image_aligner)
-                    cv2.imwrite(
-                        "images/{0}.jpg".format(new_name), image_aligner)
-
-                    new_people = people(new_name, face_encoding[0])
-                    new_people.cal_center(face_location)
-                    people_object_list.append(new_people)
-
-                    known_face_names.append(new_name)
-                    known_num += 1
-                    in_window_names.append(new_name)
-
-            else:
                 people_num = people_object_list[known_face_names.index(name)]
                 people_num.cal_center(face_location)
+                in_window_names.append(name)
+            else:
+                name = "people_" + str(known_num)
+
+                cv2.imshow('un_image', image_aligner)
+                cv2.imwrite(
+                    "images/{0}.jpg".format(name), image_aligner)
+
+                new_people = people(name, face_encoding)
+                new_people.cal_center(face_location)
+                people_object_list.append(new_people)
+
+                known_face_names.append(name)
+                known_num += 1
                 in_window_names.append(name)
 
             gender_text = fr.gender_prediction(image_aligner)
             emotion_text = fr.emotion_prediction(image_aligner)
 
             # Draw a box around the face
+            top, right, bottom, left = face_location
+
             top *= int(1/zoom)
             right *= int(1/zoom)
             bottom *= int(1/zoom)
