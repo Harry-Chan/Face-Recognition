@@ -34,7 +34,7 @@ class face_recognition(object):
         self.gender_labels = {0: 'woman', 1: 'man'}
 
         self.emotion_classifier = load_model(
-            'emotion_models/simple_CNN.985-0.66.hdf5', compile=False)
+            'emotion_models/fer2013_mini_XCEPTION.107-0.66.hdf5', compile=False)
 
         self.emotion_labels = {0: 'angry', 1: 'disgust', 2: 'fear', 3: 'happy',
                                4: 'sad', 5: 'surprise', 6: 'neutral'}
@@ -202,10 +202,10 @@ def main():
                "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
                "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
                "videoconvert ! appsink").format(width, height)
-    #video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
 
     # 在windows使用視訊頭
-    video_capture = cv2.VideoCapture(0)
+    #video_capture = cv2.VideoCapture(0)
 
     # 初始化套件
     fr = face_recognition()
@@ -225,7 +225,7 @@ def main():
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
         # 偵測畫面中的人臉位置(可使用cnn與hog模式)
-        face_detections = fr.face_detection(rgb_small_frame, model="hog")
+        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
 
         # 取出人臉的特徵值並傳換成128維的向量
         face_encodings, image_aligners = fr.face_encodings(
