@@ -1,6 +1,5 @@
 # import the necessary packages
-from .helpers import FACIAL_LANDMARKS_IDXS
-from .helpers import shape_to_np
+from collections import OrderedDict
 import numpy as np
 import cv2
 
@@ -20,14 +19,34 @@ class FaceAligner:
         if self.desiredFaceHeight is None:
             self.desiredFaceHeight = self.desiredFaceWidth
 
+        # define a dictionary that maps the indexes of the facial
+        # landmarks to specific face regions
+        self.FACIAL_LANDMARKS_IDXS = OrderedDict([
+            ("mouth", (48, 68)),
+            ("right_eyebrow", (17, 22)),
+            ("left_eyebrow", (22, 27)),
+
+            # shape_predictor_68_face_landmarks.dat
+            # ("right_eye", (36, 42)),
+            # ("left_eye", (42, 48)),
+            # ("nose", (27, 36)),
+
+            # shape_predictor_5_face_landmarks.dat
+            ("right_eye", (2, 4)),
+            ("left_eye", (0, 2)),
+            ("nose", (5, 6)),
+
+            ("jaw", (0, 17))
+        ])
+
     def align(self, image, gray, rect):
         # convert the landmark (x, y)-coordinates to a NumPy array
         shape = self.predictor(gray, rect)
-        shape = shape_to_np(shape)
+        shape = self.shape_to_np(shape)
 
         # extract the left and right eye (x, y)-coordinates
-        (lStart, lEnd) = FACIAL_LANDMARKS_IDXS["left_eye"]
-        (rStart, rEnd) = FACIAL_LANDMARKS_IDXS["right_eye"]
+        (lStart, lEnd) = self.FACIAL_LANDMARKS_IDXS["left_eye"]
+        (rStart, rEnd) = self.FACIAL_LANDMARKS_IDXS["right_eye"]
         leftEyePts = shape[lStart:lEnd]
         rightEyePts = shape[rStart:rEnd]
 
@@ -74,3 +93,15 @@ class FaceAligner:
 
         # return the aligned face
         return output
+
+    def shape_to_np(self, shape, dtype="int"):
+        # initialize the list of (x, y)-coordinates
+        coords = np.zeros((shape.num_parts, 2), dtype=dtype)
+
+        # loop over all facial landmarks and convert them
+        # to a 2-tuple of (x, y)-coordinates
+        for i in range(0, shape.num_parts):
+            coords[i] = (shape.part(i).x, shape.part(i).y)
+
+        # return the list of (x, y)-coordinates
+        return coords
