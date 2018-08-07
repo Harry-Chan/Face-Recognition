@@ -10,6 +10,7 @@ from os import listdir
 from os.path import join
 import math
 import time
+import sys
 
 
 class face_recognition(object):
@@ -29,7 +30,7 @@ class face_recognition(object):
             'gender_models/simple_CNN.81-0.96.hdf5', compile=False)
 
         self.face_aligner = FaceAligner(
-            self.pose_predictor_5_point, desiredFaceWidth=500)
+            self.pose_predictor_5_point, desiredFaceWidth=200)
 
         self.gender_labels = {0: 'woman', 1: 'man'}
 
@@ -60,6 +61,7 @@ class face_recognition(object):
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
+            cv2.imshow('known_face', face_image)
             bottom, right, _ = face_image.shape
             face_location = (0, right, bottom, 0)
             raw_landmark = pose_predictor(
@@ -76,6 +78,7 @@ class face_recognition(object):
                 image_aligner = self.face_aligner.align(
                     face_image, face_image, self._css_to_rect(face_location))
                 image_aligners.append(image_aligner)
+                cv2.imshow('found_face', image_aligner)
 
                 bottom, right, _ = image_aligner.shape
                 new_face_location = (0, right, bottom, 0)
@@ -83,8 +86,7 @@ class face_recognition(object):
                     image_aligner, self._css_to_rect(new_face_location)))
 
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
-                face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
-
+                image_aligner, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
             return face_encodings, image_aligners
 
     def _css_to_rect(self, css):
@@ -197,16 +199,19 @@ def main():
     height = 720
     zoom = 0.5
 
-    # 在TX2上使用視訊鏡頭
-    gst_str = ("nvcamerasrc ! "
-               "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
-               "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
-               "videoconvert ! appsink").format(width, height)
-    video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-
-    # 在windows使用視訊頭
-    #video_capture = cv2.VideoCapture(0)
-
+    if sys.argv[1] == 'TX2':
+        # 在TX2上使用視訊鏡頭
+        gst_str = ("nvcamerasrc ! "
+                   "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
+                   "nvvidconv ! video/x-raw, width=(int){}, height=(int){}, format=(string)BGRx ! "
+                   "videoconvert ! appsink").format(width, height)
+        video_capture = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
+        model = "cnn"
+    elif sys.argv[1] == 'WIN':
+        # 在windows使用視訊頭
+        video_capture = cv2.VideoCapture(0)
+        print("在windows使用視訊頭")
+        model = "hog"
     # 初始化套件
     fr = face_recognition()
 
@@ -225,7 +230,7 @@ def main():
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
         # 偵測畫面中的人臉位置(可使用cnn與hog模式)
-        face_detections = fr.face_detection(rgb_small_frame, model="cnn")
+        face_detections = fr.face_detection(rgb_small_frame, model=model)
 
         # 取出人臉的特徵值並傳換成128維的向量
         face_encodings, image_aligners = fr.face_encodings(
