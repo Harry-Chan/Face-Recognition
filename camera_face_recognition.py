@@ -30,7 +30,7 @@ class face_recognition(object):
             'gender_models/simple_CNN.81-0.96.hdf5', compile=False)
 
         self.face_aligner = FaceAligner(
-            self.pose_predictor_5_point, desiredFaceWidth=200)
+            self.pose_predictor_5_point, desiredFaceWidth=500)
 
         self.gender_labels = {0: 'woman', 1: 'man'}
 
@@ -198,8 +198,10 @@ def main():
     width = 1280
     height = 720
     zoom = 0.5
-
-    if sys.argv[1] == 'TX2':
+    if len(sys.argv) == 1:
+        print("select mode (WIN or TX2)")
+        sys.exit()
+    elif sys.argv[1] == 'TX2':
         # 在TX2上使用視訊鏡頭
         gst_str = ("nvcamerasrc ! "
                    "video/x-raw(memory:NVMM), width=(int)2592, height=(int)1944, format=(string)I420, framerate=(fraction)30/1 ! "
@@ -212,6 +214,10 @@ def main():
         video_capture = cv2.VideoCapture(0)
         print("在windows使用視訊頭")
         model = "hog"
+    else:
+        print("select mode (WIN or TX2)")
+        sys.exit()
+
     # 初始化套件
     fr = face_recognition()
 
