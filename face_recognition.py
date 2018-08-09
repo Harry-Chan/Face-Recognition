@@ -31,13 +31,9 @@ class face_recognition(object):
     def face_detection(self, img, number_of_times_to_upsample=1, model="hog"):
         # 使用dlib的face_detecctor偵測人臉位置
         if model != "cnn":
-            # face, scores, idx = self.face_detector.run(
-            #     img, number_of_times_to_upsample, -1)
-            # for i, d in enumerate(face):
-            #     print("scores", scores[i])
             return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
-            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence > 0.3]
+            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True]
 
     def face_encodings(self, face_image, face_locations=None, num_jitters=0):
         # 將人臉編碼成128維的向量
