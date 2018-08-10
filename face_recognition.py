@@ -12,8 +12,11 @@ class face_recognition(object):
 
         self.face_detector = dlib.get_frontal_face_detector()
 
+        #self.pose_predictor_5_point = dlib.shape_predictor(
+        #    './models/shape_predictor_5_face_landmarks.dat')
+
         self.pose_predictor_5_point = dlib.shape_predictor(
-            './models/shape_predictor_5_face_landmarks.dat')
+            './models/shape_predictor_68_face_landmarks.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
@@ -33,7 +36,7 @@ class face_recognition(object):
         if model != "cnn":
             return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
-            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True]
+            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence > 1]
 
     def face_encodings(self, face_image, face_locations=None, num_jitters=0):
         # 將人臉編碼成128維的向量
@@ -64,8 +67,11 @@ class face_recognition(object):
 
                 bottom, right, _ = image_aligner.shape
                 new_face_location = (0, right, bottom, 0)
-                raw_landmarks.append(pose_predictor(
-                    image_aligner, self._css_to_rect(new_face_location)))
+                raw_landmark = pose_predictor(image_aligner, self._css_to_rect(new_face_location))
+                print("landmark",raw_landmark.part(36),raw_landmark.part(42))
+                distance = ((raw_landmark.part(36).x-raw_landmark.part(42).x)**2 + (raw_landmark.part(36).y-raw_landmark.part(42).y)**2)**0.5
+                print("distance",str(distance))
+                raw_landmarks.append(raw_landmark)
 
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
                 image_aligner, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]

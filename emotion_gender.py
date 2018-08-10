@@ -6,12 +6,12 @@ import numpy as np
 class emotion_gender(object):
     def __init__(self):
         self.gender_classifier = load_model(
-            'models/simple_CNN.81-0.96.hdf5', compile=False)
+            'gender_models/simple_CNN.81-0.96.hdf5', compile=False)
 
         self.gender_labels = {0: 'woman', 1: 'man'}
 
         self.emotion_classifier = load_model(
-            'models/fer2013_mini_XCEPTION.107-0.66.hdf5', compile=False)
+            'emotion_models/fer2013_mini_XCEPTION.107-0.66.hdf5', compile=False)
 
         self.emotion_labels = {0: 'angry', 1: 'disgust', 2: 'fear', 3: 'happy',
                                4: 'sad', 5: 'surprise', 6: 'neutral'}
