@@ -12,7 +12,7 @@ class face_recognition(object):
 
         self.face_detector = dlib.get_frontal_face_detector()
 
-        #self.pose_predictor_5_point = dlib.shape_predictor(
+        # self.pose_predictor_5_point = dlib.shape_predictor(
         #    './models/shape_predictor_5_face_landmarks.dat')
 
         self.pose_predictor_5_point = dlib.shape_predictor(
@@ -56,23 +56,29 @@ class face_recognition(object):
             #       raw_landmarks[0].part(1), raw_landmarks[0].part(2), raw_landmarks[0].part(3), raw_landmarks[0].part(4))
         else:
             raw_landmarks = []
-            image_aligners = []
+            faces = []
             for face_location in face_locations:
 
-                image_aligner = self.face_aligner.align(
-                    face_image, face_image, self._css_to_rect(face_location))
-                image_aligner = cv2.cvtColor(image_aligner, cv2.COLOR_BGR2RGB)
-                image_aligners.append(image_aligner)
-                cv2.imshow('found_face', image_aligner)
+                # image_aligner = self.face_aligner.align(
+                #     face_image, face_image, self._css_to_rect(face_location))
+                # image_aligner = cv2.cvtColor(image_aligner, cv2.COLOR_BGR2RGB)
+                # image_aligners.append(image_aligner)
+                face = face_image[face_location[0]:face_location[2],
+                                  face_location[3]:face_location[1]]
+                face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
+                faces.append(face)
 
-                bottom, right, _ = image_aligner.shape
-                new_face_location = (0, right, bottom, 0)
-                raw_landmark = pose_predictor(image_aligner, self._css_to_rect(new_face_location))
+                cv2.imshow('found_face', face)
+
+                # bottom, right, _ = image_aligner.shape
+                # new_face_location = (0, right, bottom, 0)
+                raw_landmark = pose_predictor(
+                    face_image, self._css_to_rect(face_location))
                 raw_landmarks.append(raw_landmark)
 
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
-                image_aligner, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
-            return face_encodings, image_aligners
+                face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+            return face_encodings, faces
 
     def _css_to_rect(self, css):
         # 將像素位置轉換成dlib使用的格式
