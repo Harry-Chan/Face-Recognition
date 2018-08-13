@@ -67,7 +67,8 @@ while True:
         eyes = eye_cascade.detectMultiScale(roi_gray)
         if (len(eyes))<2:
             print("XXX",len(eyes))
-            continue
+        else:
+            print("OOO",len(eyes))
      #   location = (face.top(), face.right(), face.bottom(), face.left())
         raw_landmark = pose_predictor(rgb_frame, dlib.rectangle(
             location[3], location[0], location[1], location[2]))

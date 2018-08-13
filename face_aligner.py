@@ -27,8 +27,8 @@ class FaceAligner:
             ("left_eyebrow", (22, 27)),
 
             # shape_predictor_68_face_landmarks.dat
-            # ("right_eye", (36, 42)),
-            # ("left_eye", (42, 48)),
+            #("right_eye", (36, 42)),
+            #("left_eye", (42, 48)),
 
             # shape_predictor_5_face_landmarks.dat
             #("right_eye", (2, 4)),

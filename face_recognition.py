@@ -16,7 +16,7 @@ class face_recognition(object):
         #    './models/shape_predictor_5_face_landmarks.dat')
 
         self.pose_predictor_5_point = dlib.shape_predictor(
-            './models/shape_predictor_68_face_landmarks.dat')
+            './models/predictor_68_new.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
@@ -36,7 +36,7 @@ class face_recognition(object):
         if model != "cnn":
             return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
-            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence > 1]
+            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence >= 1]
 
     def face_encodings(self, face_image, face_locations=None, num_jitters=0):
         # 將人臉編碼成128維的向量
@@ -68,9 +68,6 @@ class face_recognition(object):
                 bottom, right, _ = image_aligner.shape
                 new_face_location = (0, right, bottom, 0)
                 raw_landmark = pose_predictor(image_aligner, self._css_to_rect(new_face_location))
-                print("landmark",raw_landmark.part(36),raw_landmark.part(42))
-                distance = ((raw_landmark.part(36).x-raw_landmark.part(42).x)**2 + (raw_landmark.part(36).y-raw_landmark.part(42).y)**2)**0.5
-                print("distance",str(distance))
                 raw_landmarks.append(raw_landmark)
 
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
@@ -83,7 +80,7 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.4):
+    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.8, tolerance2=0.4):
         # 比較人臉相似度
         similars_list = []
         num = 0
