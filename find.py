@@ -10,6 +10,9 @@ pose_predictor = dlib.shape_predictor("./models/predictor_68_new.dat")
 face_detector = dlib.get_frontal_face_detector()
 cnn_face_detector = dlib.cnn_face_detection_model_v1(
     './models/mmod_human_face_detector.dat')
+
+eye_cascade = cv2.CascadeClassifier('haarcascade_eye_tree_eyeglasses.xml')
+
 width = 1280
 height = 720
 zoom = 0.5
@@ -60,6 +63,11 @@ while True:
                     face.rect.bottom(), face.rect.left())
         sorce = face.confidence
         print(sorce)
+        roi_gray = small_frame[face.rect.top():face.rect.bottom(), face.rect.left():face.rect.right()]
+        eyes = eye_cascade.detectMultiScale(roi_gray)
+        if (len(eyes))<2:
+            print("XXX",len(eyes))
+            continue
      #   location = (face.top(), face.right(), face.bottom(), face.left())
         raw_landmark = pose_predictor(rgb_frame, dlib.rectangle(
             location[3], location[0], location[1], location[2]))
