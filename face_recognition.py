@@ -16,7 +16,7 @@ class face_recognition(object):
         #    './models/shape_predictor_5_face_landmarks.dat')
 
         self.pose_predictor_5_point = dlib.shape_predictor(
-            './models/predictor_68_new.dat')
+            './models/shape_predictor_68_face_landmarks.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
@@ -36,7 +36,7 @@ class face_recognition(object):
         if model != "cnn":
             return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
-            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence >= 1]
+            return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence > 1]
 
     def face_encodings(self, face_image, face_locations=None, num_jitters=0):
         # 將人臉編碼成128維的向量
@@ -56,29 +56,28 @@ class face_recognition(object):
             #       raw_landmarks[0].part(1), raw_landmarks[0].part(2), raw_landmarks[0].part(3), raw_landmarks[0].part(4))
         else:
             raw_landmarks = []
-            faces = []
+            image_aligners = []
             for face_location in face_locations:
 
-                # image_aligner = self.face_aligner.align(
-                #     face_image, face_image, self._css_to_rect(face_location))
-                # image_aligner = cv2.cvtColor(image_aligner, cv2.COLOR_BGR2RGB)
-                # image_aligners.append(image_aligner)
-                face = face_image[face_location[0]:face_location[2],
-                                  face_location[3]:face_location[1]]
-                face = cv2.cvtColor(face, cv2.COLOR_BGR2RGB)
-                faces.append(face)
+                image_aligner = self.face_aligner.align(
+                    face_image, face_image, self._css_to_rect(face_location))
+                image_aligner = cv2.cvtColor(image_aligner, cv2.COLOR_BGR2RGB)
+                image_aligners.append(image_aligner)
+                cv2.imshow('found_face', image_aligner)
 
-                cv2.imshow('found_face', face)
-
-                # bottom, right, _ = image_aligner.shape
-                # new_face_location = (0, right, bottom, 0)
+                bottom, right, _ = image_aligner.shape
+                new_face_location = (0, right, bottom, 0)
                 raw_landmark = pose_predictor(
-                    face_image, self._css_to_rect(face_location))
+                    image_aligner, self._css_to_rect(new_face_location))
+                print("landmark", raw_landmark.part(36), raw_landmark.part(42))
+                distance = ((raw_landmark.part(36).x-raw_landmark.part(42).x) **
+                            2 + (raw_landmark.part(36).y-raw_landmark.part(42).y)**2)**0.5
+                print("distance", str(distance))
                 raw_landmarks.append(raw_landmark)
 
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
-                face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
-            return face_encodings, faces
+                image_aligner, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+            return face_encodings, image_aligners
 
     def _css_to_rect(self, css):
         # 將像素位置轉換成dlib使用的格式
@@ -86,7 +85,7 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.8, tolerance2=0.4):
+    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.4):
         # 比較人臉相似度
         similars_list = []
         num = 0
