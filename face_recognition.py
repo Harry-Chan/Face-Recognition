@@ -16,7 +16,7 @@ class face_recognition(object):
         #    './models/shape_predictor_5_face_landmarks.dat')
 
         self.pose_predictor_5_point = dlib.shape_predictor(
-            './models/shape_predictor_68_face_landmarks.dat')
+            './models/predictor_68_new.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
@@ -69,10 +69,7 @@ class face_recognition(object):
                 new_face_location = (0, right, bottom, 0)
                 raw_landmark = pose_predictor(
                     image_aligner, self._css_to_rect(new_face_location))
-                print("landmark", raw_landmark.part(36), raw_landmark.part(42))
-                distance = ((raw_landmark.part(36).x-raw_landmark.part(42).x) **
-                            2 + (raw_landmark.part(36).y-raw_landmark.part(42).y)**2)**0.5
-                print("distance", str(distance))
+                
                 raw_landmarks.append(raw_landmark)
 
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
