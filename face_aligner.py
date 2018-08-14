@@ -5,7 +5,7 @@ import cv2
 
 
 class FaceAligner:
-    def __init__(self, predictor, desiredLeftEye=(0.35, 0.35),
+    def __init__(self, predictor, desiredLeftEye=(0.3, 0.3),
                  desiredFaceWidth=256, desiredFaceHeight=None):
         # store the facial landmark predictor, desired output left
         # eye position, and desired output face width + height
@@ -31,8 +31,8 @@ class FaceAligner:
             #("left_eye", (42, 48)),
 
             # shape_predictor_5_face_landmarks.dat
-            #("right_eye", (2, 4)),
-            #("left_eye", (0, 2)),
+            # ("right_eye", (2, 4)),
+            # ("left_eye", (0, 2)),
 
             # shape_predictor_194_face_landmarks.dat
             # ("right_eye", (134, 153)),
