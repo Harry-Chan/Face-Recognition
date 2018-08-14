@@ -12,17 +12,17 @@ class face_recognition(object):
 
         self.face_detector = dlib.get_frontal_face_detector()
 
-       # self.pose_predictor_5_point = dlib.shape_predictor(
-        # './models/shape_predictor_5_face_landmarks.dat')
-
         self.pose_predictor_5_point = dlib.shape_predictor(
-            './models/predictor_68_new.dat')
+         './models/shape_predictor_5_face_landmarks.dat')
+
+        #self.pose_predictor_5_point = dlib.shape_predictor(
+        #    './models/predictor_68_new.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
 
         self.face_aligner = FaceAligner(
-            self.pose_predictor_5_point, desiredFaceWidth=500)
+            self.pose_predictor_5_point,desiredFaceWidth = 500)
 
     def bounds(self, rect, image_shape):
         # 檢查是否超出圖片邊界
@@ -57,13 +57,15 @@ class face_recognition(object):
         else:
             raw_landmarks = []
             image_aligners = []
+            num = len(face_locations)
             for face_location in face_locations:
 
                 image_aligner = self.face_aligner.align(
                     face_image, face_image, self._css_to_rect(face_location))
                 image_aligner = cv2.cvtColor(image_aligner, cv2.COLOR_BGR2RGB)
                 image_aligners.append(image_aligner)
-                cv2.imshow('found_face', image_aligner)
+                num-=1
+                cv2.imshow('found_image'+str(num), image_aligner)
 
                 bottom, right, _ = image_aligner.shape
                 new_face_location = (0, right, bottom, 0)
@@ -72,7 +74,7 @@ class face_recognition(object):
                     image_aligner, self._css_to_rect(new_face_location))
 
                 raw_landmarks.append(raw_landmark)
-
+                
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
                 image_aligner, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
             return face_encodings, image_aligners
@@ -83,13 +85,13 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.8, tolerance2=0.4):
+    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.4):
         # 比較人臉相似度
         similars_list = []
         num = 0
         (top, right, bottom, left) = face_location_to_check
         x, y = ((left+right) / 2, (bottom+top) / 2)
-
+        
         for people in people_object_list:
             # 使用ssim(結構相似性)
             similars_ssim = compare_ssim(
@@ -98,9 +100,10 @@ class face_recognition(object):
             # 使用nrmse(正規化方均根差)
             # similars_nrmse = compare_nrmse(
             #     people.face_encoding, face_encoding_to_check)
-            encoding_distance = np.linalg.norm(people.face_encoding -
-                                               face_encoding_to_check)
 
+            #encoding_distance = np.linalg.norm(people.face_encoding -
+            #                                   face_encoding_to_check)
+            encoding_distance = 0
             # 計算兩張圖的中心距離
             center_distance = (
                 (x - people.center[0]) ** 2 + (y - people.center[1]) ** 2) ** 0.5
@@ -109,15 +112,16 @@ class face_recognition(object):
             if similars_ssim >= tolerance1 and encoding_distance <= tolerance2:
                 similars_list.append(
                     (num, similars_ssim, similars_nrmse, encoding_distance))
-            elif center_distance <= 50 and (similars_ssim >= tolerance1 - 0.2 or similars_nrmse <= tolerance2 + 0.2):
+            elif center_distance <= 30 and (similars_ssim >= tolerance1 - 0.2 or similars_nrmse <= tolerance2 + 0.2):
                 similars_list.append(
                     (num, similars_ssim, similars_nrmse, encoding_distance))
-                print("center_distance <= 50")
+                print("center_distance <= 30")
             else:
                 print("XX"*5, (num, similars_ssim,
                                similars_nrmse, encoding_distance))
             num += 1
         print(similars_list)
+       
         if len(similars_list) == 0:
             return 0
         else:

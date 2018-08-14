@@ -76,7 +76,7 @@ def main():
 
     # 初始化套件
     fr = FR.face_recognition()
-    eg = EG.emotion_gender()
+    #eg = EG.emotion_gender()
 
     # 讀取已知人臉圖片
     people_objects, known_face_names, known_num = load_img(fr, [], [])
@@ -93,7 +93,7 @@ def main():
 
         # 將BRG(openCV使用))轉成RGB模式
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-
+        
         # 偵測畫面中的人臉位置(可使用cnn與hog模式)
         face_detections = fr.face_detection(rgb_small_frame, model=model)
 
@@ -101,14 +101,12 @@ def main():
         # 利用face_net轉換成128維的特徵向量
         face_encodings, image_aligners = fr.face_encodings(
             rgb_small_frame, face_detections)
-
         # 與原先已知的人臉比對，查看是否已存在
         for face_location, face_encoding, image_aligner in zip(face_detections, face_encodings, image_aligners):
 
             # 進行比對
             matches = fr.compare_faces_ssim(
                 face_encoding, face_location, people_objects)
-
             # 人臉已存在 計算位置的中心點 name新增到list中
             if matches != 0:
                 name = known_face_names[matches[0]]
@@ -131,10 +129,11 @@ def main():
                 known_num += 1
                 in_window_names.append(name)
             # 性別預測
-            gender_text = eg.gender_prediction(image_aligner)
+           # gender_text = eg.gender_prediction(image_aligner)
+            gender_text = "man"
             # 表情預測
-            emotion_text = eg.emotion_prediction(image_aligner)
-
+           # emotion_text = eg.emotion_prediction(image_aligner)
+            emotion_text = "happy"
             # 框出人臉與畫上label
             top, right, bottom, left = face_location
             top *= int(1/zoom)
@@ -146,7 +145,7 @@ def main():
                 color = (255, 0, 0)
             else:
                 color = (0, 0, 255)
-
+            
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
             cv2.rectangle(frame, (left, bottom - 35),
                           (right, bottom), color, cv2.FILLED)
