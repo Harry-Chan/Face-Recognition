@@ -21,6 +21,7 @@ class emotion_gender(object):
         image = cv2.resize(image, (gender_input_size))
         image = image / 255
         image = np.expand_dims(image, 0)
+        #image = np.expand_dims(image, -1)
         gender_prediction = self.gender_classifier.predict(image)
         gender_label_arg = np.argmax(gender_prediction)
         gender_text = self.gender_labels[gender_label_arg]

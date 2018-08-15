@@ -106,7 +106,10 @@ def main():
 
         # 與原先已知的人臉比對，查看是否已存在
         for face_location, face_encoding, faces_image in zip(face_detections, face_encodings, faces_images):
-
+            
+            if len(face_encoding) == 0:
+                print("face error")
+                continue 
             # 進行比對
             matches = fr.compare_faces_ssim(
                 face_encoding, face_location, people_objects)
@@ -123,7 +126,6 @@ def main():
                 cv2.imwrite(
                     "images/{0}.jpg".format(name), faces_image)
                 cv2.imshow('un_image', faces_image)
-
                 new_people = people(name, face_encoding)
                 new_people.cal_center(face_location)
                 people_objects.append(new_people)
@@ -131,14 +133,15 @@ def main():
                 known_face_names.append(name)
                 known_num += 1
                 in_window_names.append(name)
-
+            
             cv2.imshow('found_face', faces_image)
+
             # 性別預測
             gender_text = eg.gender_prediction(faces_image)
-
+            #gender_text = "man"
             # 表情預測
             emotion_text = eg.emotion_prediction(faces_image)
-
+            #emotion_text = "happy"
             # 框出人臉與畫上label
             top, right, bottom, left = face_location
             top *= int(1/zoom)

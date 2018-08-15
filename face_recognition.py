@@ -12,11 +12,11 @@ class face_recognition(object):
 
         self.face_detector = dlib.get_frontal_face_detector()
 
-        # self.pose_predictor_5_point = dlib.shape_predictor(
-        #    './models/shape_predictor_5_face_landmarks.dat')
-
         self.pose_predictor_5_point = dlib.shape_predictor(
-            './models/predictor_68_new.dat')
+            './models/shape_predictor_5_face_landmarks.dat')
+
+        #self.pose_predictor_5_point = dlib.shape_predictor(
+        #    './models/predictor_68_new.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
@@ -36,9 +36,11 @@ class face_recognition(object):
         if model != "cnn":
             return [(face.top(), face.right(), face.bottom(), face.left()) for face in self.face_detector(img, number_of_times_to_upsample) if self.bounds(face, img.shape) == True]
         else:
+            # hyper-parameters for bounding boxes shape
+            x, y = (20, 20)
             return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence > 1]
 
-    def face_encodings(self, image, face_locations=None, num_jitters=1):
+    def face_encodings(self, image, face_locations=None, num_jitters=2):
         # 將人臉編碼成128維的向量
         # Given an image, return the 128-dimension face encoding for each face in the image.
         pose_predictor = self.pose_predictor_5_point
@@ -56,20 +58,29 @@ class face_recognition(object):
         else:
             raw_landmarks = []
             faces_images = []
-            # hyper-parameters for bounding boxes shape
-            x, y = (30, 60)
-
+            face_encodings = []
             for face_location in face_locations:
                 top, right, bottom, left = face_location
                 faces_image = image[top:bottom, left:right]
-                faces_image = cv2.resize(faces_image, (300, 300))
+                faces_image = cv2.resize(faces_image, (200, 200))
                 faces_images.append(faces_image)
-                raw_landmark = pose_predictor(
-                    image, self._css_to_rect(face_location))
+                raw_landmark = pose_predictor(faces_image, self._css_to_rect((0,200,200,0)))
                 raw_landmarks.append(raw_landmark)
 
-            face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
-                image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+                #test = cv2.resize(image[top:bottom, left:right], (200, 200))
+                #for i in range(5):
+                #    cv2.circle(test, (raw_landmark.part(i).x,raw_landmark.part(i).y), 5, (0, 0, 255), -1)
+                #cv2.imshow('test', test)
+                
+                if raw_landmark.part(4).x > 150 or raw_landmark.part(4).x < 50 or raw_landmark.part(4).y < 100:
+                    print("nose",raw_landmark.part(4).x,raw_landmark.part(4).y)
+                    face_encodings.append([])
+                    continue
+
+                face_encoding = np.array(self.face_encoder.compute_face_descriptor(faces_image, raw_landmark, num_jitters)) 
+                face_encodings.append(face_encoding)
+            #face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
+            #    image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
             return face_encodings, faces_images
 
     def face_aligners(self, face_image, face_locations):
@@ -90,7 +101,7 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.4):
+    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.6):
         # 比較人臉相似度
         similars_list = []
 
@@ -105,13 +116,12 @@ class face_recognition(object):
             # 使用nrmse(正規化方均根差)
             similars_nrmse = compare_nrmse(
                 people.face_encoding, face_encoding_to_check)
-            print(similars_nrmse)
+
             encoding_distance = np.linalg.norm(people.face_encoding -
                                                face_encoding_to_check)
             # 計算兩張圖的中心距離
             center_distance = (
                 (x - people.center[0]) ** 2 + (y - people.center[1]) ** 2) ** 0.5
-            print("+" * 10)
             print("center_distance", center_distance)
 
             if similars_ssim >= tolerance1 and encoding_distance <= tolerance2:
@@ -126,7 +136,6 @@ class face_recognition(object):
                                similars_nrmse, encoding_distance))
             num += 1
         print(similars_list)
-        print("+" * 10)
         if len(similars_list) == 0:
             return 0
         else:
