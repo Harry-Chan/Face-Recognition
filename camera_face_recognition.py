@@ -98,13 +98,14 @@ def main():
         face_detections = fr.face_detection(small_frame, model=model)
 
         # 取出人臉特徵點並轉換成128維的特徵向量
-        face_encodings = fr.face_encodings(small_frame, face_detections)
+        face_encodings, faces_images = fr.face_encodings(
+            small_frame, face_detections)
 
         # 將人臉依照眼睛位置對齊(轉正)
-        image_aligners = fr.face_aligners(small_frame, face_detections)
+        # image_aligners = fr.face_aligners(small_frame, face_detections)
 
         # 與原先已知的人臉比對，查看是否已存在
-        for face_location, face_encoding, image_aligner in zip(face_detections, face_encodings, image_aligners):
+        for face_location, face_encoding, faces_image in zip(face_detections, face_encodings, faces_images):
 
             # 進行比對
             matches = fr.compare_faces_ssim(
@@ -120,8 +121,8 @@ def main():
                 name = "people_" + str(known_num)
 
                 cv2.imwrite(
-                    "images/{0}.jpg".format(name), image_aligner)
-                cv2.imshow('un_image', image_aligner)
+                    "images/{0}.jpg".format(name), faces_image)
+                cv2.imshow('un_image', faces_image)
 
                 new_people = people(name, face_encoding)
                 new_people.cal_center(face_location)
@@ -130,11 +131,13 @@ def main():
                 known_face_names.append(name)
                 known_num += 1
                 in_window_names.append(name)
+
+            cv2.imshow('found_face', faces_image)
             # 性別預測
-            gender_text = eg.gender_prediction(image_aligner)
+            gender_text = eg.gender_prediction(faces_image)
 
             # 表情預測
-            emotion_text = eg.emotion_prediction(image_aligner)
+            emotion_text = eg.emotion_prediction(faces_image)
 
             # 框出人臉與畫上label
             top, right, bottom, left = face_location

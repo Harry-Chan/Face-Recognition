@@ -38,33 +38,39 @@ class face_recognition(object):
         else:
             return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence > 1]
 
-    def face_encodings(self, face_image, face_locations=None, num_jitters=1):
+    def face_encodings(self, image, face_locations=None, num_jitters=1):
         # 將人臉編碼成128維的向量
         # Given an image, return the 128-dimension face encoding for each face in the image.
         pose_predictor = self.pose_predictor_5_point
 
         if face_locations is None:
-            cv2.imshow('known_face', face_image)
-            bottom, right, _ = face_image.shape
+            cv2.imshow('known_face', image)
+            bottom, right, _ = image.shape
             face_location = (0, right, bottom, 0)
             raw_landmark = pose_predictor(
-                face_image, self._css_to_rect(face_location))
+                image, self._css_to_rect(face_location))
 
-            return np.array(self.face_encoder.compute_face_descriptor(face_image, raw_landmark, num_jitters))
+            return np.array(self.face_encoder.compute_face_descriptor(image, raw_landmark, num_jitters))
             # print("---"*5, raw_landmarks[0].part(0),
             #       raw_landmarks[0].part(1), raw_landmarks[0].part(2), raw_landmarks[0].part(3), raw_landmarks[0].part(4))
         else:
             raw_landmarks = []
+            faces_images = []
+            # hyper-parameters for bounding boxes shape
+            x, y = (30, 60)
 
             for face_location in face_locations:
-
+                top, right, bottom, left = face_location
+                faces_image = image[top:bottom, left:right]
+                faces_image = cv2.resize(faces_image, (300, 300))
+                faces_images.append(faces_image)
                 raw_landmark = pose_predictor(
-                    face_image, self._css_to_rect(face_location))
+                    image, self._css_to_rect(face_location))
                 raw_landmarks.append(raw_landmark)
 
             face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
-                face_image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
-            return face_encodings
+                image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
+            return face_encodings, faces_images
 
     def face_aligners(self, face_image, face_locations):
         face_aligners = []
