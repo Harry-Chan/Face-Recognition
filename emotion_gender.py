@@ -28,7 +28,7 @@ class emotion_gender(object):
         return gender_text
 
     def emotion_prediction(self, image):
-        gray_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         emotion_input_size = self.emotion_classifier.input_shape[1:3]
         gray_image = cv2.resize(gray_image, (emotion_input_size))
         gray_image = gray_image/255

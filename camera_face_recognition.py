@@ -76,7 +76,7 @@ def main():
 
     # 初始化套件
     fr = FR.face_recognition()
-    #eg = EG.emotion_gender()
+    eg = EG.emotion_gender()
 
     # 讀取已知人臉圖片
     people_objects, known_face_names, known_num = load_img(fr, [], [])
@@ -92,15 +92,17 @@ def main():
         small_frame = cv2.resize(frame, (0, 0), fx=zoom, fy=zoom)
 
         # 將BRG(openCV使用))轉成RGB模式
-        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        
-        # 偵測畫面中的人臉位置(可使用cnn與hog模式)
-        face_detections = fr.face_detection(rgb_small_frame, model=model)
+        # rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        # 取出人臉的特徵值並依照特徵點將人臉對齊
-        # 利用face_net轉換成128維的特徵向量
-        face_encodings, image_aligners = fr.face_encodings(
-            rgb_small_frame, face_detections)
+        # 偵測畫面中的人臉位置(可使用cnn與hog模式)
+        face_detections = fr.face_detection(small_frame, model=model)
+
+        # 取出人臉特徵點並轉換成128維的特徵向量
+        face_encodings = fr.face_encodings(small_frame, face_detections)
+
+        # 將人臉依照眼睛位置對齊(轉正)
+        image_aligners = fr.face_aligners(small_frame, face_detections)
+
         # 與原先已知的人臉比對，查看是否已存在
         for face_location, face_encoding, image_aligner in zip(face_detections, face_encodings, image_aligners):
 
@@ -117,9 +119,9 @@ def main():
             else:
                 name = "people_" + str(known_num)
 
-                cv2.imshow('un_image', image_aligner)
                 cv2.imwrite(
                     "images/{0}.jpg".format(name), image_aligner)
+                cv2.imshow('un_image', image_aligner)
 
                 new_people = people(name, face_encoding)
                 new_people.cal_center(face_location)
@@ -129,11 +131,11 @@ def main():
                 known_num += 1
                 in_window_names.append(name)
             # 性別預測
-           # gender_text = eg.gender_prediction(image_aligner)
-            gender_text = "man"
+            gender_text = eg.gender_prediction(image_aligner)
+
             # 表情預測
-           # emotion_text = eg.emotion_prediction(image_aligner)
-            emotion_text = "happy"
+            emotion_text = eg.emotion_prediction(image_aligner)
+
             # 框出人臉與畫上label
             top, right, bottom, left = face_location
             top *= int(1/zoom)
@@ -145,7 +147,7 @@ def main():
                 color = (255, 0, 0)
             else:
                 color = (0, 0, 255)
-            
+
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2)
             cv2.rectangle(frame, (left, bottom - 35),
                           (right, bottom), color, cv2.FILLED)

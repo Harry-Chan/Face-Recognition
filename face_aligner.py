@@ -31,16 +31,16 @@ class FaceAligner:
             #("left_eye", (42, 48)),
 
             # shape_predictor_5_face_landmarks.dat
-            ("right_eye", (2, 4)),
-            ("left_eye", (0, 2)),
+            # ("right_eye", (2, 4)),
+            # ("left_eye", (0, 2)),
 
             # shape_predictor_194_face_landmarks.dat
             # ("right_eye", (134, 153)),
             # ("left_eye", (114, 133)),
 
             # predictor_68.dat
-            #("right_eye", (47, 55)),
-            #("left_eye", (39, 47)),
+            ("right_eye", (47, 55)),
+            ("left_eye", (39, 47)),
 
             ("nose", (27, 36)),
             ("jaw", (0, 17))
