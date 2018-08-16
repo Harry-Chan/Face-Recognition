@@ -5,7 +5,7 @@ from os.path import join
 import sys
 
 
-pose_predictor = dlib.shape_predictor("./models/predictor_68_new.dat")
+pose_predictor = dlib.shape_predictor("./models/predictor.dat")
 
 face_detector = dlib.get_frontal_face_detector()
 cnn_face_detector = dlib.cnn_face_detection_model_v1(
@@ -55,15 +55,21 @@ while True:
     # face = face_detector(img,0)
     small_frame = cv2.resize(frame, (0, 0), fx=zoom, fy=zoom)
     rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-    faces = cnn_face_detector(rgb_frame, 1)
-    #faces = face_detector(rgb_frame,1)
+    # faces = cnn_face_detector(rgb_frame, 1)
+    faces = face_detector(rgb_frame,1)
     # print(faces)
     for face in faces:
-        location = (face.rect.top(), face.rect.right(),
-                    face.rect.bottom(), face.rect.left())
-        sorce = face.confidence
-        print(sorce)
-        roi_gray = small_frame[face.rect.top():face.rect.bottom(), face.rect.left():face.rect.right()]
+        # location = (face.rect.top(), face.rect.right(),
+        #             face.rect.bottom(), face.rect.left())
+        # sorce = face.confidence
+        # print(sorce)
+        # roi_gray = small_frame[face.rect.top():face.rect.bottom(), face.rect.left():face.rect.right()]
+        
+        location = (face.top(), face.right(),
+                    face.bottom(), face.left())
+
+        roi_gray = small_frame[face.top():face.bottom(), face.left():face.right()]
+
         eyes = eye_cascade.detectMultiScale(roi_gray)
         if (len(eyes))<2:
             print("XXX",len(eyes))
