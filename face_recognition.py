@@ -15,7 +15,7 @@ class face_recognition(object):
         self.pose_predictor_5_point = dlib.shape_predictor(
             './models/shape_predictor_5_face_landmarks.dat')
 
-        #self.pose_predictor_5_point = dlib.shape_predictor(
+        # self.pose_predictor_5_point = dlib.shape_predictor(
         #    './models/predictor_68_new.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
@@ -64,22 +64,25 @@ class face_recognition(object):
                 faces_image = image[top:bottom, left:right]
                 faces_image = cv2.resize(faces_image, (200, 200))
                 faces_images.append(faces_image)
-                raw_landmark = pose_predictor(faces_image, self._css_to_rect((0,200,200,0)))
+                raw_landmark = pose_predictor(
+                    faces_image, self._css_to_rect((0, 200, 200, 0)))
                 raw_landmarks.append(raw_landmark)
 
                 #test = cv2.resize(image[top:bottom, left:right], (200, 200))
-                #for i in range(5):
+                # for i in range(5):
                 #    cv2.circle(test, (raw_landmark.part(i).x,raw_landmark.part(i).y), 5, (0, 0, 255), -1)
                 #cv2.imshow('test', test)
-                
+
                 if raw_landmark.part(4).x > 150 or raw_landmark.part(4).x < 50 or raw_landmark.part(4).y < 100:
-                    print("nose",raw_landmark.part(4).x,raw_landmark.part(4).y)
+                    print("nose", raw_landmark.part(
+                        4).x, raw_landmark.part(4).y)
                     face_encodings.append([])
                     continue
 
-                face_encoding = np.array(self.face_encoder.compute_face_descriptor(faces_image, raw_landmark, num_jitters)) 
+                face_encoding = np.array(self.face_encoder.compute_face_descriptor(
+                    faces_image, raw_landmark, num_jitters))
                 face_encodings.append(face_encoding)
-            #face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
+            # face_encodings = [np.array(self.face_encoder.compute_face_descriptor(
             #    image, raw_landmark_set, num_jitters)) for raw_landmark_set in raw_landmarks]
             return face_encodings, faces_images
 
@@ -101,7 +104,7 @@ class face_recognition(object):
 
         return dlib.rectangle(css[3], css[0], css[1], css[2])
 
-    def compare_faces_ssim(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.6):
+    def compare_faces(self, face_encoding_to_check, face_location_to_check, people_object_list, tolerance1=0.7, tolerance2=0.6):
         # 比較人臉相似度
         similars_list = []
 
@@ -113,27 +116,30 @@ class face_recognition(object):
             # 使用ssim(結構相似性)
             similars_ssim = compare_ssim(
                 people.face_encoding, face_encoding_to_check)
-            # 使用nrmse(正規化方均根差)
-            similars_nrmse = compare_nrmse(
-                people.face_encoding, face_encoding_to_check)
 
-            encoding_distance = np.linalg.norm(people.face_encoding -
-                                               face_encoding_to_check)
+            # 使用nrmse(正規化方均根差)
+            # similars_nrmse = compare_nrmse(
+            #     people.face_encoding, face_encoding_to_check)
+
+            # 計算向量的歐式距離
+            encoding_distance = np.linalg.norm(
+                people.face_encoding - face_encoding_to_check)
             # 計算兩張圖的中心距離
             center_distance = (
                 (x - people.center[0]) ** 2 + (y - people.center[1]) ** 2) ** 0.5
             print("center_distance", center_distance)
 
             if similars_ssim >= tolerance1 and encoding_distance <= tolerance2:
-                similars_list.append(
-                    (num, similars_ssim, similars_nrmse, encoding_distance))
-            elif center_distance <= 30 and (similars_ssim >= tolerance1 or similars_nrmse <= tolerance2):
-                similars_list.append(
-                    (num, similars_ssim, similars_nrmse, encoding_distance))
-                print("center_distance <= 30")
+                # Harmonic Mean
+                HM = 2 * (similars_ssim * (1-encoding_distance)) / \
+                    (similars_ssim + (1-encoding_distance))
+                similars_list.append((num, HM))
+            # elif center_distance <= 30 and (similars_ssim >= tolerance1 or encoding_distance <= tolerance2):
+            #     similars_list.append(
+            #         (num, similars_ssim, similars_nrmse, encoding_distance))
+                # print("center_distance <= 30")
             else:
-                print("XX"*5, (num, similars_ssim,
-                               similars_nrmse, encoding_distance))
+                print("XX"*5, (num, similars_ssim, encoding_distance))
             num += 1
         print(similars_list)
         if len(similars_list) == 0:

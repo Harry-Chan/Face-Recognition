@@ -106,12 +106,12 @@ def main():
 
         # 與原先已知的人臉比對，查看是否已存在
         for face_location, face_encoding, faces_image in zip(face_detections, face_encodings, faces_images):
-            
+
             if len(face_encoding) == 0:
                 print("face error")
-                continue 
+                continue
             # 進行比對
-            matches = fr.compare_faces_ssim(
+            matches = fr.compare_faces(
                 face_encoding, face_location, people_objects)
             # 人臉已存在 計算位置的中心點 name新增到list中
             if matches != 0:
@@ -133,7 +133,7 @@ def main():
                 known_face_names.append(name)
                 known_num += 1
                 in_window_names.append(name)
-            
+
             cv2.imshow('found_face', faces_image)
 
             # 性別預測
