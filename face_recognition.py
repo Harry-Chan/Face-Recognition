@@ -15,8 +15,8 @@ class face_recognition(object):
         self.pose_predictor_5_point = dlib.shape_predictor(
             './models/shape_predictor_5_face_landmarks.dat')
 
-        # self.pose_predictor_5_point = dlib.shape_predictor(
-        #    './models/predictor_68_new.dat')
+        #self.pose_predictor_5_point = dlib.shape_predictor(
+        #    './models/shape_predictor_68_face_landmarks.dat')
 
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
@@ -40,7 +40,7 @@ class face_recognition(object):
             x, y = (20, 20)
             return [(face.rect.top(), face.rect.right(), face.rect.bottom(), face.rect.left()) for face in self.cnn_face_detector(img, number_of_times_to_upsample) if self.bounds(face.rect, img.shape) == True and face.confidence > 1]
 
-    def face_encodings(self, image, face_locations=None, num_jitters=2):
+    def face_encodings(self, image, face_locations=None, num_jitters=1):
         # 將人臉編碼成128維的向量
         # Given an image, return the 128-dimension face encoding for each face in the image.
         pose_predictor = self.pose_predictor_5_point
@@ -68,12 +68,12 @@ class face_recognition(object):
                     faces_image, self._css_to_rect((0, 200, 200, 0)))
                 raw_landmarks.append(raw_landmark)
 
-                #test = cv2.resize(image[top:bottom, left:right], (200, 200))
-                # for i in range(5):
+                test = cv2.resize(image[top:bottom, left:right], (200, 200))
+                #for i in range(5):
                 #    cv2.circle(test, (raw_landmark.part(i).x,raw_landmark.part(i).y), 5, (0, 0, 255), -1)
                 #cv2.imshow('test', test)
-
-                if raw_landmark.part(4).x > 150 or raw_landmark.part(4).x < 50 or raw_landmark.part(4).y < 100:
+                
+                if raw_landmark.part(4).x > 145 or raw_landmark.part(4).x < 55 or raw_landmark.part(4).y < 105:
                     print("nose", raw_landmark.part(
                         4).x, raw_landmark.part(4).y)
                     face_encodings.append([])
@@ -131,13 +131,16 @@ class face_recognition(object):
 
             if similars_ssim >= tolerance1 and encoding_distance <= tolerance2:
                 # Harmonic Mean
-                HM = 2 * (similars_ssim * (1-encoding_distance)) / \
-                    (similars_ssim + (1-encoding_distance))
+                HM = self.Harmonic_Mean(similars_ssim, encoding_distance)
                 similars_list.append((num, HM))
-            # elif center_distance <= 30 and (similars_ssim >= tolerance1 or encoding_distance <= tolerance2):
-            #     similars_list.append(
-            #         (num, similars_ssim, similars_nrmse, encoding_distance))
-                # print("center_distance <= 30")
+                print("OO"*5, (num, similars_ssim, encoding_distance))
+            elif center_distance <= 30 and (similars_ssim >= tolerance1 or encoding_distance <= tolerance2):
+                # Harmonic Mean
+                HM = self.Harmonic_Mean(similars_ssim, encoding_distance)
+
+                similars_list.append((num, HM))
+                print("center_distance <= 30")
+                print("OO"*5, (num, similars_ssim, encoding_distance))
             else:
                 print("XX"*5, (num, similars_ssim, encoding_distance))
             num += 1
@@ -146,3 +149,9 @@ class face_recognition(object):
             return 0
         else:
             return sorted(similars_list, key=lambda x: x[1], reverse=True)[0]
+
+    def Harmonic_Mean(self,ssim,distance):
+        HM = 2 * (ssim * (1-distance)) / \
+                    (ssim + (1-distance))
+
+        return HM
