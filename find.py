@@ -55,26 +55,22 @@ while True:
     # face = face_detector(img,0)
     small_frame = cv2.resize(frame, (0, 0), fx=zoom, fy=zoom)
     rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-    # faces = cnn_face_detector(rgb_frame, 1)
-    faces = face_detector(rgb_frame,1)
+    
+    faces = cnn_face_detector(rgb_frame, 1)
+    #faces = face_detector(rgb_frame,1)
     # print(faces)
     for face in faces:
-        # location = (face.rect.top(), face.rect.right(),
-        #             face.rect.bottom(), face.rect.left())
-        # sorce = face.confidence
-        # print(sorce)
-        # roi_gray = small_frame[face.rect.top():face.rect.bottom(), face.rect.left():face.rect.right()]
+        location = (face.rect.top(), face.rect.right(),
+                    face.rect.bottom(), face.rect.left())
+        sorce = face.confidence
+        print(sorce)
+        roi_gray = small_frame[face.rect.top():face.rect.bottom(), face.rect.left():face.rect.right()]
         
-        location = (face.top(), face.right(),
-                    face.bottom(), face.left())
+        #location = (face.top(), face.right(),
+        #            face.bottom(), face.left())
 
-        roi_gray = small_frame[face.top():face.bottom(), face.left():face.right()]
+        #roi_gray = small_frame[face.top():face.bottom(), face.left():face.right()]
 
-        eyes = eye_cascade.detectMultiScale(roi_gray)
-        if (len(eyes))<2:
-            print("XXX",len(eyes))
-        else:
-            print("OOO",len(eyes))
      #   location = (face.top(), face.right(), face.bottom(), face.left())
         raw_landmark = pose_predictor(rgb_frame, dlib.rectangle(
             location[3], location[0], location[1], location[2]))
