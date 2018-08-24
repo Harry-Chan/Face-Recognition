@@ -174,10 +174,10 @@ def main():
                         font, 1.0, (255, 255, 255), 1)
 
             cv2.putText(frame, gender_text, (left, top - 6),
-                        font, 1.0, color, 1)
+                        font, 1.0, (255, 255, 255), 1)
 
             cv2.putText(frame, emotion_text, (left, top + 20),
-                        font, 1.0, color, 1)
+                        font, 1.0, (255, 255, 255), 1)
 
         # 顯示畫面
         cv2.imshow('face_recognition', frame)
