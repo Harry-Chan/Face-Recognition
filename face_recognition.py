@@ -101,11 +101,11 @@ class face_recognition(object):
                 raw_landmarks.append(raw_landmark)
 
                 # 印出特徵點
-                test = cv2.resize(image[top:bottom, left:right], (200, 200))
-                for i in range(5):
-                    cv2.circle(test, (raw_landmark.part(i).x,
-                                      raw_landmark.part(i).y), 5, (0, 0, 255), -1)
-                cv2.imshow('test', test)
+                # test = cv2.resize(image[top:bottom, left:right], (200, 200))
+                # for i in range(5):
+                #     cv2.circle(test, (raw_landmark.part(i).x,
+                #                       raw_landmark.part(i).y), 5, (0, 0, 255), -1)
+                # cv2.imshow('test', test)
 
                 # 特徵點4為鼻子下方，藉此來判斷是否在畫面中間，排除抓到側臉與上仰的臉
                 if raw_landmark.part(4).x > 145 or raw_landmark.part(4).x < 55 or raw_landmark.part(4).y < 105:
