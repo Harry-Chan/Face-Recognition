@@ -10,7 +10,7 @@ class emotion_gender(object):
         # 性別模組
         # 可用模組 gender_mini_XCEPTION.21-0.95.hdf5、simple_CNN.81-0.96.hdf5
         self.gender_classifier = load_model(
-            'gender_models/gender_mini_XCEPTION.21-0.95.hdf5', compile=False)
+            'gender_models/simple_CNN.81-0.96.hdf5', compile=False)
 
         self.gender_labels = {0: 'woman', 1: 'man'}
 
