@@ -66,7 +66,7 @@ class face_recognition(object):
 
         # 當 face_locations is None 為讀取資料夾的圖片
         if face_locations is None:
-            cv2.imshow('known_face', image)
+            # cv2.imshow('known_face', image)
 
             # 邊界即為圖片大小
             bottom, right, _ = image.shape
@@ -101,12 +101,13 @@ class face_recognition(object):
                     faces_image, self._css_to_rect((0, 200, 200, 0)))
                 raw_landmarks.append(raw_landmark)
 
-                # 印出特徵點
-                test = cv2.resize(image[top:bottom, left:right], (200, 200))
-                for i in range(5):
-                    cv2.circle(test, (raw_landmark.part(i).x,
-                                      raw_landmark.part(i).y), 5, (0, 0, 255), -1)
-                cv2.imshow('test', test)
+                # # 印出特徵點
+                # landmarks = cv2.resize(
+                #     image[top:bottom, left:right], (200, 200))
+                # for i in range(5):
+                #     cv2.circle(test, (raw_landmark.part(i).x,
+                #                       raw_landmark.part(i).y), 5, (0, 0, 255), -1)
+                # cv2.imshow('landmarks', landmarks)
 
                 # 特徵點4為鼻子下方，藉此來判斷是否在畫面中間，排除抓到側臉與上仰的臉
                 if raw_landmark.part(4).x > 145 or raw_landmark.part(4).x < 55 or raw_landmark.part(4).y < 105:
