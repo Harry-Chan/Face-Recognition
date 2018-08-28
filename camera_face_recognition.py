@@ -97,7 +97,7 @@ def main():
         # Resize 大小加速運算速度
         small_frame = cv2.resize(frame, (0, 0), fx=zoom, fy=zoom)
 
-        # 將BRG(openCV使用))轉成RGB模式
+        # 將BRG(openCV使用)轉成RGB模式
         # rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
         # 偵測畫面中的人臉位置(可使用cnn與hog模式)

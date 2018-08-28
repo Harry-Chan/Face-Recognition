@@ -28,8 +28,9 @@ class face_recognition(object):
         self.face_encoder = dlib.face_recognition_model_v1(
             './models/dlib_face_recognition_resnet_model_v1.dat')
 
-        self.face_aligner = FaceAligner(
-            self.pose_predictor_5_point, desiredFaceWidth=500)
+        # 人臉對齊 18/08/28 目前沒有使用 詳細可以看oneNote上連結 (英鴻)
+        # self.face_aligner = FaceAligner(
+        #     self.pose_predictor_5_point, desiredFaceWidth=500)
 
     def bounds(self, rect, image_shape):
         # 檢查是否超出圖片邊界
@@ -101,11 +102,11 @@ class face_recognition(object):
                 raw_landmarks.append(raw_landmark)
 
                 # 印出特徵點
-                # test = cv2.resize(image[top:bottom, left:right], (200, 200))
-                # for i in range(5):
-                #     cv2.circle(test, (raw_landmark.part(i).x,
-                #                       raw_landmark.part(i).y), 5, (0, 0, 255), -1)
-                # cv2.imshow('test', test)
+                test = cv2.resize(image[top:bottom, left:right], (200, 200))
+                for i in range(5):
+                    cv2.circle(test, (raw_landmark.part(i).x,
+                                      raw_landmark.part(i).y), 5, (0, 0, 255), -1)
+                cv2.imshow('test', test)
 
                 # 特徵點4為鼻子下方，藉此來判斷是否在畫面中間，排除抓到側臉與上仰的臉
                 if raw_landmark.part(4).x > 145 or raw_landmark.part(4).x < 55 or raw_landmark.part(4).y < 105:
@@ -123,6 +124,7 @@ class face_recognition(object):
             return face_encodings, faces_images
 
     # def face_aligners(self, face_image, face_locations):
+    # 使人臉依照眼睛位置對齊(轉正)
     #     face_aligners = []
 
     #     for face_location in face_locations:
@@ -153,7 +155,7 @@ class face_recognition(object):
             similars_ssim = compare_ssim(
                 people.face_encoding, face_encoding_to_check)
 
-            # 使用nrmse(正規化方均根差)
+            # 使用nrmse(正規化方均根差) 18/08/28 目前沒使用
             # similars_nrmse = compare_nrmse(
             #     people.face_encoding, face_encoding_to_check)
 
@@ -173,7 +175,7 @@ class face_recognition(object):
                 similars_list.append((num, HM))
                 print("OO"*5, (num, similars_ssim, encoding_distance))
 
-            # 當兩張人臉在畫面上的距離<=30就放寬標準，其中一項符合就計算HM
+            # 當人臉在前一張畫面與現在的畫面距離<=30就放寬標準，其中一項符合就計算HM
             elif center_distance <= 30 and (similars_ssim >= ssim_threshold or encoding_distance <= dis_threshold):
 
                 # 將兩個參數計算Harmonic Mean
