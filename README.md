@@ -1,2 +1,2 @@
 # Face-Recognition
-Face-Recognition using Python
+Face-Recognition using Python on Nvidia Jetson TX2
