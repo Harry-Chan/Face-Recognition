@@ -1,8 +1,8 @@
 import dlib
 import numpy as np
 import cv2
-from face_aligner import FaceAligner
 from skimage.measure import compare_ssim, compare_nrmse, compare_psnr
+# from face_aligner import FaceAligner
 
 
 class face_recognition(object):
