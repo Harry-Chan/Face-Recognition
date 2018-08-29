@@ -1,0 +1,6 @@
+opencv-python
+dlib
+numpy
+scikit-image
+tensorflow
+keras
