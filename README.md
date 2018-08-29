@@ -1,5 +1,4 @@
 # Face-Recognition
-Face-Recognition using Python on Nvidia Jetson TX2
 
 ### 目標 : 在一段時間內偵測有多少人進入過畫面並統計停留時間，也判斷其性別與臉部表情。
 
