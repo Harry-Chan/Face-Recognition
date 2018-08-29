@@ -13,5 +13,11 @@
 * [model](https://drive.google.com/file/d/1G8vmmQxbwtGRhnIPTkmHDpitthfDuLoQ/view)
 3. 執行程式 : 
 * `python3 camera_face_recognition.py TX2` (TX2 改 WIN 在 windows下執行)
-4. 顯示特徵點程式:
+
+##### 顯示特徵點程式:
 * `python3 landmarks_demo.py`
+
+### 參考資料:
+* https://github.com/davisking/dlib
+* https://github.com/ageitgey/face_recognition
+* https://github.com/oarriaga/face_classification
