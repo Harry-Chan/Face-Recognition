@@ -3,7 +3,7 @@
 ### 目標 : 使用TX2設備，偵測有多少人進入過畫面並統計停留時間，也判斷其性別與臉部表情。
 
 ### 詳細教學簡報:
-* [NVIDIA Jetson TX2之人臉辨識](https://drive.google.com/open?id=1SnWHB767En3z7XnR64ynok2EhVdXBwqm)
+* [NVIDIA Jetson TX2之人臉辨識](https://drive.google.com/open?id=1DAThAOme3e5eERBfAnlg8tOm-HSmw6BO)
 
 ### 使用方法:
 1. 安裝套件 : 
